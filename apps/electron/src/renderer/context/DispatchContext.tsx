@@ -20,6 +20,8 @@ import {
   sharedWinsAtom,
 } from '@/atoms/dispatch'
 import { DEMO_TASKS, DEMO_WINS, DEMO_JORDAN_TASK_IDS, DEMO_SARAH_TASK_IDS, DEMO_ALEX_TASK_IDS } from '@/config/dispatch-demo-seed'
+import { getWebSocket, closeWebSocket } from '@/lib/websocket-client'
+import * as api from '@/lib/api-client'
 
 let taskIdCounter = 0
 function generateTaskId(): string {
@@ -68,7 +70,7 @@ export function useDispatch(): DispatchContextType {
 export function DispatchProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useAtom(dispatchTasksAtom)
   const users = useAtomValue(dispatchUsersAtom)
-  const [, setActiveUserId] = useAtom(activeUserIdAtom)
+  const [activeUserId, setActiveUserId] = useAtom(activeUserIdAtom)
   const addTask = useSetAtom(addTaskAtom)
   const updateTask = useSetAtom(updateTaskAtom)
   const addWin = useSetAtom(addSharedWinAtom)
@@ -76,6 +78,7 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
   const setWins = useSetAtom(sharedWinsAtom)
 
   const [deadlineCheckTaskId, setDeadlineCheckTaskId] = useState<string | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
 
   const tasksRef = useRef(tasks)
   useEffect(() => { tasksRef.current = tasks }, [tasks])
@@ -83,11 +86,93 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
   const usersRef = useRef(users)
   useEffect(() => { usersRef.current = users }, [users])
 
-  // Seed demo data on mount
-  const seededRef = useRef(false)
+  // Initialize WebSocket connection and fetch initial data
+  const initializedRef = useRef(false)
   useEffect(() => {
-    if (seededRef.current) return
-    seededRef.current = true
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    const ws = getWebSocket()
+
+    // Subscribe to current user's updates
+    ws.subscribeToUser(activeUserId)
+
+    // Handle WebSocket messages
+    const unsubscribe = ws.onMessage((message) => {
+      console.log('[DispatchContext] WebSocket message:', message.type)
+
+      switch (message.type) {
+        case 'connected':
+          setIsConnected(true)
+          break
+
+        case 'task:created':
+          // Add new task to state
+          if (message.task) {
+            addTask(message.task)
+          }
+          break
+
+        case 'task:updated':
+          // Update existing task
+          if (message.task) {
+            updateTask(message.task.id, message.task)
+          }
+          break
+
+        case 'task:completed':
+          // Mark task as completed
+          if (message.task) {
+            updateTask(message.task.id, message.task)
+          }
+          break
+
+        case 'task:reassigned':
+          // Handle reassignment
+          if (message.task) {
+            updateTask(message.task.id, message.task)
+            toast(`Task reassigned to ${message.toUserId}`)
+          }
+          break
+
+        case 'error':
+          console.error('[DispatchContext] WebSocket error:', message.error)
+          setIsConnected(false)
+          break
+      }
+    })
+
+    // Fetch initial tasks from backend
+    const fetchInitialData = async () => {
+      try {
+        const [myTasks, sentTasks, doneTasks] = await Promise.all([
+          api.getMyTasks(activeUserId),
+          api.getSentTasks(activeUserId),
+          api.getDoneTasks(activeUserId),
+        ])
+
+        console.log('[DispatchContext] Loaded tasks:', { myTasks, sentTasks, doneTasks })
+
+        // Add tasks to state
+        // TODO: Map backend task format to frontend DispatchTask format
+      } catch (error) {
+        console.error('[DispatchContext] Failed to fetch initial data:', error)
+        // Fallback to demo data if backend is unavailable
+        seedDemoData()
+      }
+    }
+
+    fetchInitialData()
+
+    return () => {
+      unsubscribe()
+      closeWebSocket()
+    }
+  }, [activeUserId, addTask, updateTask])
+
+  // Fallback: Seed demo data if backend is unavailable
+  const seedDemoData = useCallback(() => {
+    console.log('[DispatchContext] Seeding demo data (fallback)')
 
     // Seed tasks
     for (const task of DEMO_TASKS) {
@@ -183,81 +268,98 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
     })
   }, [updateTask])
 
-  const completeTask = useCallback((taskId: string, result?: string) => {
+  const completeTask = useCallback(async (taskId: string, result?: string) => {
     const task = tasksRef.current.get(taskId)
     if (!task) return
 
-    updateTask(taskId, {
-      status: 'completed',
-      completedAt: Date.now(),
-      result,
-      requesterRevealed: true,
-    })
+    try {
+      // Call backend API
+      await api.completeTask(taskId, activeUserId)
 
-    // Remove from assignee's current tasks
-    if (task.assigneeId) {
-      const assignee = usersRef.current.find(u => u.id === task.assigneeId)
-      if (assignee) {
-        updateUserTasks(task.assigneeId, assignee.currentTaskIds.filter(id => id !== taskId))
+      // Update local state
+      updateTask(taskId, {
+        status: 'completed',
+        completedAt: Date.now(),
+        result,
+        requesterRevealed: true,
+      })
+
+      // Remove from assignee's current tasks
+      if (task.assigneeId) {
+        const assignee = usersRef.current.find(u => u.id === task.assigneeId)
+        if (assignee) {
+          updateUserTasks(task.assigneeId, assignee.currentTaskIds.filter(id => id !== taskId))
+        }
       }
+
+      // Add to shared wins
+      const completedBy = task.assigneeId
+        ? usersRef.current.find(u => u.id === task.assigneeId)
+        : null
+
+      const win: SharedWin = {
+        id: generateWinId(),
+        taskId: task.id,
+        taskTitle: task.title,
+        completedByName: completedBy?.name ?? 'AI',
+        completedByRole: completedBy?.role ?? 'Assistant',
+        executionTier: task.executionTier,
+        completedAt: Date.now(),
+      }
+      addWin(win)
+
+      toast.success(`Task completed: ${task.title}`)
+    } catch (error) {
+      console.error('[DispatchContext] Failed to complete task:', error)
+      toast.error('Failed to complete task')
     }
+  }, [activeUserId, updateTask, updateUserTasks, addWin])
 
-    // Add to shared wins
-    const completedBy = task.assigneeId
-      ? usersRef.current.find(u => u.id === task.assigneeId)
-      : null
-
-    const win: SharedWin = {
-      id: generateWinId(),
-      taskId: task.id,
-      taskTitle: task.title,
-      completedByName: completedBy?.name ?? 'AI',
-      completedByRole: completedBy?.role ?? 'Assistant',
-      executionTier: task.executionTier,
-      completedAt: Date.now(),
-    }
-    addWin(win)
-
-    toast.success(`Task completed: ${task.title}`)
-  }, [updateTask, updateUserTasks, addWin])
-
-  const reassignTask = useCallback((taskId: string, newAssigneeId: string, reason?: string) => {
+  const reassignTask = useCallback(async (taskId: string, newAssigneeId: string, reason?: string) => {
     const task = tasksRef.current.get(taskId)
     if (!task) return
 
-    // Remove from old assignee
-    if (task.assigneeId) {
-      const oldAssignee = usersRef.current.find(u => u.id === task.assigneeId)
-      if (oldAssignee) {
-        updateUserTasks(task.assigneeId, oldAssignee.currentTaskIds.filter(id => id !== taskId))
+    try {
+      // Call backend API
+      await api.reassignTask(taskId, newAssigneeId, reason || 'Reassigned', activeUserId)
+
+      // Remove from old assignee
+      if (task.assigneeId) {
+        const oldAssignee = usersRef.current.find(u => u.id === task.assigneeId)
+        if (oldAssignee) {
+          updateUserTasks(task.assigneeId, oldAssignee.currentTaskIds.filter(id => id !== taskId))
+        }
       }
+
+      // Update task
+      const previousAssigneeIds = [
+        ...(task.escalationState?.previousAssigneeIds ?? []),
+        ...(task.assigneeId ? [task.assigneeId] : []),
+      ]
+
+      updateTask(taskId, {
+        assigneeId: newAssigneeId,
+        status: 'reassigned',
+        escalationState: {
+          ...(task.escalationState ?? { checkedAt50: false, warnedAt75: false, reassignedAt90: false, previousAssigneeIds: [] }),
+          reassignedAt90: true,
+          previousAssigneeIds,
+        },
+      })
+
+      // Add to new assignee
+      const newAssignee = usersRef.current.find(u => u.id === newAssigneeId)
+      if (newAssignee) {
+        updateUserTasks(newAssigneeId, [...newAssignee.currentTaskIds, taskId])
+      }
+
+      const newName = newAssignee?.name ?? newAssigneeId
+      toast(`Task reassigned to ${newName}${reason ? `: ${reason}` : ''}`)
+    } catch (error) {
+      console.error('[DispatchContext] Failed to reassign task:', error)
+      toast.error('Failed to reassign task')
     }
-
-    // Update task
-    const previousAssigneeIds = [
-      ...(task.escalationState?.previousAssigneeIds ?? []),
-      ...(task.assigneeId ? [task.assigneeId] : []),
-    ]
-
-    updateTask(taskId, {
-      assigneeId: newAssigneeId,
-      status: 'reassigned',
-      escalationState: {
-        ...(task.escalationState ?? { checkedAt50: false, warnedAt75: false, reassignedAt90: false, previousAssigneeIds: [] }),
-        reassignedAt90: true,
-        previousAssigneeIds,
-      },
-    })
-
-    // Add to new assignee
-    const newAssignee = usersRef.current.find(u => u.id === newAssigneeId)
-    if (newAssignee) {
-      updateUserTasks(newAssigneeId, [...newAssignee.currentTaskIds, taskId])
-    }
-
-    const newName = newAssignee?.name ?? newAssigneeId
-    toast(`Task reassigned to ${newName}${reason ? `: ${reason}` : ''}`)
-  }, [updateTask, updateUserTasks])
+  }, [activeUserId, updateTask, updateUserTasks])
 
   const submitFeedback = useCallback((taskId: string, feedback: TaskFeedback) => {
     updateTask(taskId, { feedback })
@@ -313,12 +415,12 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
         }
 
         if (progress >= 0.9 && !escalation.reassignedAt90) {
-          // Trigger the deadline conversation dialog instead of auto-reassigning
-          setDeadlineCheckTaskId(task.id)
-          // Mark as checked so we don't re-trigger
+          // Show inline notification (red dot) instead of popup dialog
           updateTask(task.id, {
+            hasUnreadMessages: true,
             escalationState: { ...escalation, reassignedAt90: true },
           })
+          toast.warning(`Deadline check: "${task.title}" needs attention`)
         } else if (progress >= 0.75 && !escalation.warnedAt75) {
           updateTask(task.id, {
             escalationState: { ...escalation, warnedAt75: true },

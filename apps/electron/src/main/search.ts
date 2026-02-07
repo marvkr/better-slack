@@ -79,7 +79,7 @@ function getRipgrepPath(): string {
   const binaryName = platformKey === 'win32' ? 'rg.exe' : 'rg';
 
   // In packaged app, use bundled SDK
-  if (app.isPackaged) {
+  if (app?.isPackaged) {
     const appPath = app.getAppPath();
     return join(appPath, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'vendor', 'ripgrep', platformFolder, binaryName);
   }

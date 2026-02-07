@@ -777,13 +777,13 @@ export class SessionManager {
     // Set path to Claude Code executable (cli.js from SDK)
     // In packaged app: use app.getAppPath() (points to app folder, ASAR is disabled)
     // In development: use process.cwd()
-    const basePath = app.isPackaged ? app.getAppPath() : process.cwd()
+    const basePath = app?.isPackaged ? app.getAppPath() : process.cwd()
 
     // In monorepos, dependencies may be hoisted to the root node_modules
     // Try local first, then check monorepo root (two levels up from apps/electron)
     const sdkRelativePath = join('node_modules', '@anthropic-ai', 'claude-agent-sdk', 'cli.js')
     let cliPath = join(basePath, sdkRelativePath)
-    if (!existsSync(cliPath) && !app.isPackaged) {
+    if (!existsSync(cliPath) && !app?.isPackaged) {
       // Try monorepo root (../../node_modules from apps/electron)
       const monorepoRoot = join(basePath, '..', '..')
       cliPath = join(monorepoRoot, sdkRelativePath)

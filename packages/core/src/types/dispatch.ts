@@ -48,6 +48,7 @@ export interface DispatchTask {
   result?: string
   requiredSkills: string[]
   feedback?: TaskFeedback
+  hasUnreadMessages?: boolean
 }
 
 export interface TaskFeedback {

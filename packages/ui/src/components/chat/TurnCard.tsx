@@ -892,9 +892,7 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
           </>
         )}
         {/* Native tools: Tool name (shrink-0) */}
-        {!isMcpOrApiTool && (
-          <span className={cn("shrink-0", onOpenDetails && isComplete && "group-hover/row:underline")}>{displayedName}</span>
-        )}
+        {!isMcpOrApiTool && (<span className={cn("shrink-0", onOpenDetails && isComplete && "group-hover/row:underline")}>{displayedName}</span> as React.ReactNode)}
         {/* Diff stats and filename badges - after tool name */}
         {!isMcpOrApiTool && !isBackgrounded && diffStats && (
           <span className="flex items-center gap-1.5 text-[10px] shrink-0">
@@ -911,11 +909,11 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
               >{diffStats.additions}</span>
             )}
             {/* Filename badge */}
-            {activity.toolInput?.file_path && (
+            {(activity.toolInput?.file_path && (
               <span className="px-1.5 py-0.5 bg-background shadow-minimal rounded-[4px] text-[11px] text-foreground/70">
                 {(activity.toolInput.file_path as string).split('/').pop()}
               </span>
-            )}
+            )) as React.ReactNode}
           </span>
         )}
         {/* Filename badge for Read tool (no diff stats) */}

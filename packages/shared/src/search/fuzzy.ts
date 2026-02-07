@@ -22,8 +22,8 @@ export interface FuzzyResult<T> {
   item: T
   /** Match score - higher is better */
   score: number
-  /** Character ranges for highlighting: [[start, end], ...] */
-  ranges?: number[][]
+  /** Character ranges for highlighting as flat array: [start, end, start, end, ...] */
+  ranges?: number[]
 }
 
 /**
@@ -58,8 +58,8 @@ export function fuzzyFilter<T>(
 
   return order.map((i) => ({
     item: items[idxs[i]],
-    score: info.score?.[i] ?? 0,
-    ranges: info.ranges?.[i],
+    score: (info as any).score?.[i] ?? 0,
+    ranges: (info as any).ranges?.[i],
   }))
 }
 
@@ -83,7 +83,7 @@ export function fuzzyScore(text: string, query: string): number {
 
   const info = uf.info(idxs, [text], query)
   // info.score can be undefined if no scoring info available
-  return info.score?.[0] ?? 1
+  return (info as any).score?.[0] ?? 1
 }
 
 /**

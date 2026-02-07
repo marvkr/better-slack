@@ -251,7 +251,7 @@ function createComponents(
   return {
     ...baseComponents,
     // Full code blocks with copy button
-    code: ({ className, children, ...props }) => {
+    code: ({ className, children, ...props }: any) => {
       const match = /language-(\w+)/.exec(className || '')
       const isBlock = 'node' in props && props.node?.position?.start.line !== props.node?.position?.end.line
 
@@ -278,57 +278,57 @@ function createComponents(
 
       return <InlineCode>{children}</InlineCode>
     },
-    pre: ({ children }) => <>{children}</>,
+    pre: ({ children }: any) => <>{children}</>,
     // Rich paragraph spacing
-    p: ({ children }) => <p className="my-3 leading-relaxed">{children}</p>,
+    p: ({ children }: any) => <p className="my-3 leading-relaxed">{children}</p>,
     // Styled lists - ul uses tighter spacing, ol uses standard for number alignment
-    ul: ({ children }) => (
+    ul: ({ children }: any) => (
       <ul className="my-3 space-y-1.5 ps-[16px] pe-2 list-disc marker:text-[var(--md-bullets)]">
         {children}
       </ul>
     ),
-    ol: ({ children }) => (
+    ol: ({ children }: any) => (
       <ol className="my-3 space-y-1.5 pl-6 list-decimal">{children}</ol>
     ),
-    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+    li: ({ children }: any) => <li className="leading-relaxed">{children}</li>,
     // Beautiful tables
-    table: ({ children }) => (
+    table: ({ children }: any) => (
       <div className="my-4 overflow-x-auto rounded-md border">
         <table className="min-w-full divide-y divide-border">{children}</table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y divide-border">{children}</tbody>,
-    th: ({ children }) => (
+    thead: ({ children }: any) => <thead className="bg-muted/50">{children}</thead>,
+    tbody: ({ children }: any) => <tbody className="divide-y divide-border">{children}</tbody>,
+    th: ({ children }: any) => (
       <th className="text-left py-3 px-4 font-semibold text-sm">{children}</th>
     ),
-    td: ({ children }) => (
+    td: ({ children }: any) => (
       <td className="py-3 px-4 text-sm">{children}</td>
     ),
-    tr: ({ children }) => (
+    tr: ({ children }: any) => (
       <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
     ),
     // Rich headings - H1/H2 same size, differentiated by weight
-    h1: ({ children }) => (
+    h1: ({ children }: any) => (
       <h1 className="font-sans text-[16px] font-bold mt-7 mb-4">{children}</h1>
     ),
-    h2: ({ children }) => (
+    h2: ({ children }: any) => (
       <h2 className="font-sans text-[16px] font-semibold mt-6 mb-3">{children}</h2>
     ),
-    h3: ({ children }) => (
+    h3: ({ children }: any) => (
       <h3 className="font-sans text-[15px] font-semibold mt-5 mb-3">{children}</h3>
     ),
-    h4: ({ children }) => (
+    h4: ({ children }: any) => (
       <h4 className="text-[14px] font-semibold mt-3 mb-1">{children}</h4>
     ),
     // Styled blockquotes
-    blockquote: ({ children }) => (
+    blockquote: ({ children }: any) => (
       <blockquote className="border-l-4 border-foreground/30 bg-muted/30 pl-4 pr-3 py-2 my-3 rounded-r-md">
         {children}
       </blockquote>
     ),
     // Task lists (GFM)
-    input: ({ type, checked }) => {
+    input: ({ type, checked }: any) => {
       if (type === 'checkbox') {
         return (
           <input
@@ -344,12 +344,12 @@ function createComponents(
     // Horizontal rules
     hr: () => <hr className="my-6 border-border" />,
     // Strong/emphasis
-    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-    em: ({ children }) => <em className="italic">{children}</em>,
-    del: ({ children }) => <del className="line-through text-muted-foreground">{children}</del>,
+    strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    del: ({ children }: any) => <del className="line-through text-muted-foreground">{children}</del>,
     // Handle unknown <markdown> tags that may come through rehype-raw
-    markdown: ({ children }) => <>{children}</>,
-  }
+    markdown: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  } as any
 }
 
 /**

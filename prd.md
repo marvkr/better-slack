@@ -1,8 +1,17 @@
-# Dispatch Demo Polish: PRD + Implementation Plan
+# Dispatch: PRD + Implementation Status
 
 ## Context
 
-The Dispatch feature is built (types, atoms, navigation, context, 8 UI components, AppShell integration). However, the current implementation doesn't match the **60-second pitch demo** the user wants to present. This plan closes the gaps between what's built and what the demo script requires — specifically 3 rapid-fire beats that showcase intent routing, AI self-execution, and conversational reassignment.
+Dispatch is an AI-native task coordination system for B2B teams. Instead of chat-based communication, team members tell the system what they need, and a central AI intelligently routes tasks to the best-qualified available person - or completes the task autonomously if possible.
+
+**Current Status**:
+- ✅ Frontend UI components built (types, atoms, navigation, context, 8 UI components)
+- ✅ Backend API implemented (packages/backend)
+- ✅ Database schema designed (Neon + Drizzle ORM)
+- ✅ AI coordinator service with Claude API
+- ✅ WebSocket support for real-time updates
+- 🚧 Frontend-backend integration (in progress)
+- ⏳ Demo polish and testing
 
 ---
 
@@ -96,53 +105,185 @@ flowchart TD
 ### Mermaid Diagram: System Architecture
 
 ```mermaid
-graph LR
-    subgraph UI["UI Layer"]
-        IS[IntentInput] --> |shows reasoning| RP[Reasoning Panel]
-        IS --> |shows result| IR[Inline Result]
-        TL[TaskListPanel] --> TC[TaskCard]
-        TD[TaskDetailPage]
-        DC[DeadlineConversation]
-        WF[WinsFeed]
+graph TB
+    subgraph Frontend["Frontend (Electron App)"]
+        UI[UI Components]
+        State[Jotai State]
+        WS[WebSocket Client]
+        API[API Client]
     end
 
-    subgraph State["State Layer (Jotai)"]
-        TA[dispatchTasksAtom]
-        UA[dispatchUsersAtom]
-        WA[sharedWinsAtom]
-        AUI[activeUserIdAtom]
+    subgraph Backend["Backend (packages/backend)"]
+        Server[Hono HTTP Server]
+        WSS[WebSocket Server]
+        Routes[API Routes]
+        Services[Services Layer]
     end
 
-    subgraph Logic["Logic Layer"]
-        CC[DispatchContext]
-        DM[Deadline Monitor]
-        DS[Demo Seed]
+    subgraph Services["Services"]
+        Coordinator[AI Coordinator<br/>Claude API]
+        Assignment[Task Assignment<br/>Algorithm]
+        Monitor[Deadline Monitor]
     end
 
-    subgraph AI["AI Layer"]
-        CP[Coordinator Prompt] --> HS[Hidden Session]
-        HS --> |JSON response| IS
-        ES[Execution Session] --> |result| IR
+    subgraph Database["Database (Neon)"]
+        Users[users table]
+        Tasks[tasks table]
+        Messages[messages table]
+        History[assignment_history]
     end
 
-    IS --> CC
-    DC --> CC
-    CC --> TA
-    CC --> UA
-    CC --> WA
-    DM --> |90% trigger| DC
-    DS --> |on mount| TA
-    DS --> |on mount| WA
+    UI --> API
+    UI --> WS
+    API --> Server
+    WS --> WSS
+    Server --> Routes
+    Routes --> Services
+    Services --> Coordinator
+    Services --> Assignment
+    Services --> Monitor
+    Services --> Database
 
-    style UI fill:#f8fafc,stroke:#94a3b8
-    style State fill:#fef3c7,stroke:#f59e0b
-    style Logic fill:#f0f4ff,stroke:#6366f1
-    style AI fill:#f0fdf4,stroke:#22c55e
+    style Frontend fill:#e0f2fe,stroke:#0284c7
+    style Backend fill:#fef3c7,stroke:#f59e0b
+    style Database fill:#dcfce7,stroke:#16a34a
 ```
 
 ---
 
-## Implementation Plan
+## Backend Architecture (Implemented)
+
+### Tech Stack
+- **Runtime**: Bun
+- **Framework**: Hono (HTTP + WebSocket)
+- **Database**: Neon (Serverless Postgres)
+- **ORM**: Drizzle
+- **AI**: Anthropic Claude API (Sonnet 4.5)
+
+### Database Schema
+
+**users** - Demo users (Sarah, Jordan, Alex)
+```sql
+- id: text (primary key) - 'sarah', 'jordan', 'alex'
+- name: text
+- email: text
+- role: text
+- skills: text[] - Array of skills
+- currentCapacity: integer - Active task count
+- maxCapacity: integer - Max concurrent tasks
+```
+
+**tasks** - All task records
+```sql
+- id: uuid (primary key)
+- title: text
+- description: text
+- deadline: timestamp
+- priority: text - 'low' | 'medium' | 'high' | 'urgent'
+- requiredSkills: text[]
+- status: text - 'pending' | 'assigned' | 'in_progress' | 'completed'
+- requesterId: text (FK to users)
+- assigneeId: text (FK to users)
+- aiCompleted: boolean - True if AI did it autonomously
+- aiResult: text - Result for AI direct execution
+- progressPercentage: integer - 0-100
+```
+
+**messages** - Task-scoped chat threads
+```sql
+- id: uuid (primary key)
+- userId: text (FK to users) - Null for system messages
+- content: text
+- role: text - 'user' | 'assistant'
+- taskId: uuid (FK to tasks) - Links to task thread
+```
+
+**assignment_history** - Track reassignments
+```sql
+- id: uuid (primary key)
+- taskId: uuid (FK to tasks)
+- fromUserId: text (FK to users)
+- toUserId: text (FK to users)
+- reason: text
+```
+
+**task_checkins** - Deadline check-in responses
+```sql
+- id: uuid (primary key)
+- taskId: uuid (FK to tasks)
+- response: text - 'on_track' | 'blocked' | 'cant_do'
+- notes: text
+```
+
+### API Endpoints
+
+**Chat**
+- `POST /api/chat` - Send message to AI coordinator, creates task
+
+**Tasks**
+- `GET /api/tasks/my-tasks` - Tasks assigned to current user
+- `GET /api/tasks/sent` - Tasks requested by current user
+- `GET /api/tasks/done` - Completed tasks
+- `GET /api/tasks/:id` - Task details with messages
+- `POST /api/tasks/:id/complete` - Mark task complete
+- `PATCH /api/tasks/:id/progress` - Update progress percentage
+- `POST /api/tasks/:id/reassign` - Reassign task to another user
+
+**Users**
+- `GET /api/users/me` - Current user info
+- `GET /api/users` - List all users
+
+**WebSocket**
+- `ws://localhost:3001/ws` - Real-time updates
+  - Events: `task:created`, `task:updated`, `task:completed`, `task:reassigned`, `message:new`
+
+### AI Coordinator Logic
+
+The AI coordinator (`packages/backend/src/services/ai-coordinator.ts`) uses Claude to:
+
+1. **Parse user intent** - Extract task details from natural language
+2. **Determine execution tier**:
+   - `ai_direct` - AI completes task immediately (writing, analysis, etc.)
+   - `human` - Requires human skills, assigns to best match
+   - `ai_agent` - Complex tasks with tool use (future)
+3. **For human tasks**: Find best assignee using assignment algorithm
+4. **For AI direct**: Execute with Claude and return result
+5. **Store everything** in database with proper relationships
+
+### Task Assignment Algorithm
+
+(`packages/backend/src/services/task-assignment.ts`)
+
+```typescript
+function findBestAssignee(task):
+  1. Get all users
+  2. Filter by: currentCapacity < maxCapacity
+  3. Calculate skill match percentage
+  4. Filter by: has at least one required skill (or no skills required)
+  5. Sort by: available capacity DESC, then skill match DESC
+  6. Return top match
+```
+
+### Deadline Monitor
+
+(`packages/backend/src/services/deadline-monitor.ts`)
+
+Background job that checks every 5 minutes:
+- Calculate time progress: (elapsed / total) * 100
+- At 50% time: Check if progress < 25%, send check-in
+- At 75% time: Check if progress < 50%, send warning
+- At 90% time: Check if progress < 75%, trigger reassignment dialog
+
+### Authentication (Hackathon Mode)
+
+- **Current**: Hardcoded demo users, no auth
+- Frontend sends `X-User-Id` header with each request
+- Backend trusts header (no validation)
+- **Post-hackathon**: Implement proper auth with better-auth
+
+---
+
+## Frontend Implementation Plan
 
 ### 1. Rename users to match demo script
 
@@ -236,33 +377,243 @@ Changes:
 
 - Add `export { DeadlineConversation } from './DeadlineConversation'`
 
+### 10. Create API Client
+
+**New file**: `apps/electron/src/renderer/lib/api-client.ts`
+
+Typed fetch wrapper for backend API:
+```typescript
+const API_BASE_URL = 'http://localhost:3001/api';
+
+export async function sendChatMessage(message: string, userId: string)
+export async function getMyTasks(userId: string)
+export async function getSentTasks(userId: string)
+export async function getDoneTasks(userId: string)
+export async function getTaskDetails(taskId: string, userId: string)
+export async function completeTask(taskId: string, userId: string)
+export async function updateTaskProgress(taskId: string, progress: number, userId: string)
+export async function reassignTask(taskId: string, newAssigneeId: string, reason: string)
+```
+
+All requests include `X-User-Id` header for authentication.
+
+### 11. Create WebSocket Client
+
+**New file**: `apps/electron/src/renderer/lib/websocket-client.ts`
+
+WebSocket connection to backend:
+```typescript
+const ws = new WebSocket('ws://localhost:3001/ws');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: 'subscribe:user', userId }));
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  // Dispatch to Jotai atom updaters
+  handleWebSocketMessage(message);
+};
+```
+
+Handles events: `task:created`, `task:updated`, `task:completed`, `task:reassigned`, `message:new`
+
+### 12. Integrate Backend API into DispatchContext
+
+**File**: `apps/electron/src/renderer/context/DispatchContext.tsx`
+
+Changes:
+- Import API client and WebSocket client
+- On mount: Connect WebSocket + fetch initial tasks from `/api/tasks/my-tasks`
+- Replace mock task creation with `await sendChatMessage()`
+- Update Jotai atoms on WebSocket events
+- Keep atoms as client-side cache for fast UI updates
+
+### 13. Update IntentInput to use Backend
+
+**File**: `apps/electron/src/renderer/components/dispatch/IntentInput.tsx`
+
+Changes:
+- Call `sendChatMessage(message, userId)` instead of local AI
+- Parse response and display reasoning
+- For `ai_direct`: Show result inline
+- For `human`: Show assignment info and create task card
+- Update Jotai atoms after successful API call
+
 ---
 
 ## Files Summary
 
-| File | Action | What Changes |
-|------|--------|-------------|
-| `config/dispatch-users.ts` | **Modify** | Rename Alice→Sarah, Bob→Jordan, Carla→Alex; update skills, colors, default |
-| `components/dispatch/IntentInput.tsx` | **Modify** | Add reasoning display, inline results, updated suggestion chips |
-| `lib/dispatch-prompt.ts` | **Modify** | Add deadline parsing section + helper |
-| `components/dispatch/DeadlineConversation.tsx` | **Create** | Conversational dialog for 90% deadline check |
-| `context/DispatchContext.tsx` | **Modify** | Add deadlineCheckTask state, replace auto-reassign with dialog trigger, seed demo data |
-| `components/app-shell/AppShell.tsx` | **Modify** | Render DeadlineConversation when triggered |
-| `config/dispatch-demo-seed.ts` | **Create** | Pre-seeded tasks + wins for reliable demo |
-| `components/dispatch/index.ts` | **Modify** | Export DeadlineConversation |
+### Backend (✅ Complete)
 
-**Total**: 6 modified files, 2 new files.
+| File | Status | Purpose |
+|------|--------|---------|
+| `packages/backend/package.json` | ✅ **Created** | Backend dependencies |
+| `packages/backend/src/index.ts` | ✅ **Created** | Hono server entry + WebSocket |
+| `packages/backend/src/db/schema.ts` | ✅ **Created** | Drizzle database schema |
+| `packages/backend/src/db/client.ts` | ✅ **Created** | Neon connection |
+| `packages/backend/src/db/seed.ts` | ✅ **Created** | Demo data seeder |
+| `packages/backend/src/routes/tasks.ts` | ✅ **Created** | Task CRUD endpoints |
+| `packages/backend/src/routes/chat.ts` | ✅ **Created** | AI chat endpoint |
+| `packages/backend/src/routes/users.ts` | ✅ **Created** | User endpoints |
+| `packages/backend/src/services/ai-coordinator.ts` | ✅ **Created** | Claude API integration |
+| `packages/backend/src/services/task-assignment.ts` | ✅ **Created** | Assignment algorithm |
+| `packages/backend/src/services/deadline-monitor.ts` | ✅ **Created** | Deadline checking |
+| `packages/backend/src/websocket.ts` | ✅ **Created** | WebSocket handlers |
+| `packages/backend/src/types/index.ts` | ✅ **Created** | TypeScript types |
+
+### Frontend (🚧 In Progress)
+
+| File | Status | Purpose |
+|------|--------|---------|
+| `config/dispatch-users.ts` | ⏳ **TODO** | Rename users (Alice→Sarah, etc.) |
+| `components/dispatch/IntentInput.tsx` | ⏳ **TODO** | Add reasoning display, backend integration |
+| `lib/dispatch-prompt.ts` | ⏳ **TODO** | Add deadline parsing |
+| `components/dispatch/DeadlineConversation.tsx` | ⏳ **TODO** | Create dialog component |
+| `context/DispatchContext.tsx` | ⏳ **TODO** | Backend API + WebSocket integration |
+| `components/app-shell/AppShell.tsx` | ⏳ **TODO** | Render DeadlineConversation |
+| `lib/api-client.ts` | ⏳ **TODO** | Create API client |
+| `lib/websocket-client.ts` | ⏳ **TODO** | Create WebSocket client |
+| `components/dispatch/index.ts` | ⏳ **TODO** | Export DeadlineConversation |
+
+**Backend**: 13 files created
+**Frontend**: 9 files to modify/create
+
+---
+
+## Setup & Development
+
+### Initial Setup
+
+1. **Install dependencies**:
+   ```bash
+   bun install
+   ```
+
+2. **Create Neon database**:
+   - Go to https://neon.tech
+   - Create new project (free tier)
+   - Copy connection string
+
+3. **Configure environment**:
+   ```bash
+   cp packages/backend/.env.example packages/backend/.env
+   ```
+
+   Edit `packages/backend/.env`:
+   ```
+   DATABASE_URL=your_neon_connection_string
+   ANTHROPIC_API_KEY=your_claude_api_key
+   PORT=3001
+   ```
+
+4. **Setup database**:
+   ```bash
+   bun run backend:db:setup
+   ```
+
+   This creates tables and seeds demo users (Sarah, Jordan, Alex) + sample tasks.
+
+### Development
+
+**Start both backend + frontend**:
+```bash
+bun run dev
+```
+
+**Or start separately**:
+```bash
+# Terminal 1 - Backend
+bun run backend:dev
+
+# Terminal 2 - Frontend
+bun run electron:dev
+```
+
+**Backend commands**:
+- `bun run backend:dev` - Start server
+- `bun run backend:db:push` - Push schema changes
+- `bun run backend:db:seed` - Re-seed database
+- `bun run backend:db:setup` - Push + seed
 
 ---
 
 ## Verification Plan
 
+### Backend Testing
+
+1. **Health check**:
+   ```bash
+   curl http://localhost:3001/health
+   ```
+
+2. **Get users**:
+   ```bash
+   curl -H "X-User-Id: sarah" http://localhost:3001/api/users
+   ```
+
+3. **Create task via chat**:
+   ```bash
+   curl -X POST http://localhost:3001/api/chat \
+     -H "Content-Type: application/json" \
+     -H "X-User-Id: sarah" \
+     -d '{"message": "I need help analyzing Q4 metrics by Friday"}'
+   ```
+
+4. **Get my tasks**:
+   ```bash
+   curl -H "X-User-Id: jordan" http://localhost:3001/api/tasks/my-tasks
+   ```
+
+5. **WebSocket connection**:
+   - Use wscat: `wscat -c ws://localhost:3001/ws`
+   - Send: `{"type":"subscribe:user","userId":"sarah"}`
+
+### Frontend Integration Testing
+
 1. `bun run typecheck:all` — zero new errors
-2. `bun run electron:dev` — app loads with Sarah as default user
-3. Wins feed shows pre-seeded "Customer satisfaction report Q4" by Jordan
-4. All Tasks shows Jordan's in-progress "Onboarding metrics dashboard" with deadline indicator
-5. **Beat 1 test**: Type "I need a summary of last week's onboarding metrics by Friday" → reasoning card appears inline with assignment explanation → task created
-6. **Beat 2 test**: Type "Write a 3-paragraph team update about our shipping milestone" → "This doesn't require a human" message → result appears inline with Done badge
-7. **Beat 3 test**: Wait for 90% deadline on pre-seeded task (or reduce deadline to trigger sooner) → DeadlineConversation dialog appears → click "No, can't finish" → reassignment happens → task moves to Alex's queue
-8. Switch to Jordan view → verify task disappeared from their list
-9. Switch to Alex view → verify task appeared in their list
+2. `bun run dev` — backend + frontend start successfully
+3. Electron app loads with Sarah as default user
+4. Backend connection indicator shows "Connected"
+5. Initial tasks load from backend API
+
+### End-to-End Demo Testing
+
+**Beat 1: Intent → Smart Assignment**
+1. Type: "I need a summary of last week's onboarding metrics by Friday"
+2. ✅ AI reasoning appears: "Assigning to Jordan Rivers (Data Analyst, 83% skill match, 66% capacity)"
+3. ✅ Task appears in task list
+4. ✅ Switch to Jordan → see task in their list
+5. ✅ WebSocket notification received
+
+**Beat 2: AI Direct Execution**
+1. Type: "Write a 3-paragraph team update about our shipping milestone"
+2. ✅ AI reasoning: "This doesn't require a human. Working on it..."
+3. ✅ Result appears inline with green "Done" badge
+4. ✅ Task marked as `ai_completed` in database
+
+**Beat 3: Conversational Reassignment**
+1. ✅ Pre-seeded task exists at 89% deadline (from seed script)
+2. ✅ Deadline monitor triggers check-in dialog
+3. ✅ Jordan clicks "No, can't finish"
+4. ✅ AI reassigns to Alex
+5. ✅ Task moves from Jordan's list to Alex's list
+6. ✅ Both users get WebSocket notifications
+
+### Database Verification
+
+```sql
+-- Check users
+SELECT * FROM users;
+
+-- Check tasks
+SELECT id, title, status, requester_id, assignee_id, ai_completed
+FROM tasks
+ORDER BY created_at DESC;
+
+-- Check messages for a task
+SELECT * FROM messages WHERE task_id = 'task-uuid' ORDER BY created_at;
+
+-- Check assignment history
+SELECT * FROM assignment_history ORDER BY created_at DESC;
+```

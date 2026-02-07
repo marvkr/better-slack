@@ -6,8 +6,7 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "!apps/online-docs"
+    "apps/*"
   ],
   "scripts": {
     "test": "bun test",
@@ -17,6 +16,12 @@
     "lint:shared": "cd packages/shared && npx eslint .",
     "lint": "bun run lint:electron && bun run lint:shared",
     "link": "bun link",
+    "backend:dev": "cd packages/backend && bun run dev",
+    "backend:db:generate": "cd packages/backend && bun run db:generate",
+    "backend:db:push": "cd packages/backend && bun run db:push",
+    "backend:db:seed": "cd packages/backend && bun run db:seed",
+    "backend:db:setup": "bun run backend:db:push && bun run backend:db:seed",
+    "dev": "concurrently \"bun run backend:dev\" \"bun run electron:dev\"",
     "electron:clean": "bun run scripts/electron-clean.ts",
     "electron:build:main": "bun run scripts/electron-build-main.ts",
     "electron:build:preload": "bun run scripts/electron-build-preload.ts",

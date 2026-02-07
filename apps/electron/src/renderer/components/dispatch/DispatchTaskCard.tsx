@@ -1,24 +1,24 @@
 /**
- * ConductorTaskCard - Clean task card for Better Slack UI.
+ * DispatchTaskCard - Clean task card for Better Slack UI.
  * Layout: left side (title + description + date pill), right side (large X and check circles).
  * Subtle border, white bg. Selected state: beige bg + red dot + chevron.
  */
 
 import { cn } from '@/lib/utils'
 import { useAtomValue } from 'jotai'
-import type { ConductorTask } from '@craft-agent/core/types'
-import { activeUserIdAtom } from '@/atoms/conductor'
+import type { DispatchTask } from '@craft-agent/core/types'
+import { activeUserIdAtom } from '@/atoms/dispatch'
 import { X, Check, Calendar, ChevronRight } from 'lucide-react'
 
-interface ConductorTaskCardProps {
-  task: ConductorTask
+interface DispatchTaskCardProps {
+  task: DispatchTask
   isSelected: boolean
   onClick: () => void
   onAccept?: () => void
   onReject?: () => void
 }
 
-export function ConductorTaskCard({ task, isSelected, onClick, onAccept, onReject }: ConductorTaskCardProps) {
+export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject }: DispatchTaskCardProps) {
   const activeUserId = useAtomValue(activeUserIdAtom)
   const isAssignedToMe = task.assigneeId === activeUserId
   const showActions = isAssignedToMe && task.status !== 'completed' && task.status !== 'cancelled'

@@ -6,7 +6,7 @@
  * - Sources navigator: SourceInfoPage for selected source, or empty state
  * - Settings navigator: Settings, Preferences, or Shortcuts page
  *
- * Conductor navigator is handled by ConductorLayout directly in AppShell,
+ * Dispatch navigator is handled by DispatchLayout directly in AppShell,
  * bypassing the standard 3-panel layout.
  *
  * The NavigationState is the single source of truth for what to display.

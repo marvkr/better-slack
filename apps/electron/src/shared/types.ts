@@ -1176,20 +1176,20 @@ export interface SkillsNavigationState {
 }
 
 /**
- * Conductor filter options
+ * Dispatch filter options
  */
-export type ConductorFilter =
+export type DispatchFilter =
   | { kind: 'myTasks' }
   | { kind: 'allTasks' }
   | { kind: 'submitted' }
   | { kind: 'wins' }
 
 /**
- * Conductor navigation state - shows TaskListPanel in navigator
+ * Dispatch navigation state - shows TaskListPanel in navigator
  */
-export interface ConductorNavigationState {
-  navigator: 'conductor'
-  filter: ConductorFilter
+export interface DispatchNavigationState {
+  navigator: 'dispatch'
+  filter: DispatchFilter
   /** Selected task details or intent input */
   details: { type: 'task'; taskId: string } | { type: 'intent' } | null
   /** Optional right sidebar panel state */
@@ -1209,7 +1209,7 @@ export type NavigationState =
   | SourcesNavigationState
   | SettingsNavigationState
   | SkillsNavigationState
-  | ConductorNavigationState
+  | DispatchNavigationState
 
 /**
  * Type guard to check if state is chats navigation
@@ -1240,17 +1240,17 @@ export const isSkillsNavigation = (
 ): state is SkillsNavigationState => state.navigator === 'skills'
 
 /**
- * Type guard to check if state is conductor navigation
+ * Type guard to check if state is dispatch navigation
  */
-export const isConductorNavigation = (
+export const isDispatchNavigation = (
   state: NavigationState
-): state is ConductorNavigationState => state.navigator === 'conductor'
+): state is DispatchNavigationState => state.navigator === 'dispatch'
 
 /**
  * Default navigation state - allChats with no selection
  */
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
-  navigator: 'conductor',
+  navigator: 'dispatch',
   filter: { kind: 'myTasks' },
   details: null,
 }
@@ -1259,8 +1259,8 @@ export const DEFAULT_NAVIGATION_STATE: NavigationState = {
  * Get a persistence key for localStorage from NavigationState
  */
 export const getNavigationStateKey = (state: NavigationState): string => {
-  if (state.navigator === 'conductor') {
-    const base = `conductor:${state.filter.kind}`
+  if (state.navigator === 'dispatch') {
+    const base = `dispatch:${state.filter.kind}`
     if (state.details?.type === 'task') {
       return `${base}/task/${state.details.taskId}`
     }
@@ -1302,23 +1302,23 @@ export const getNavigationStateKey = (state: NavigationState): string => {
  * Returns null if the key is invalid
  */
 export const parseNavigationStateKey = (key: string): NavigationState | null => {
-  // Handle conductor
-  if (key.startsWith('conductor:')) {
-    const rest = key.slice(10) // Remove 'conductor:'
-    const filterKind = rest.split('/')[0] as ConductorFilter['kind']
+  // Handle dispatch
+  if (key.startsWith('dispatch:')) {
+    const rest = key.slice(9) // Remove 'dispatch:'
+    const filterKind = rest.split('/')[0] as DispatchFilter['kind']
     const validKinds = ['myTasks', 'allTasks', 'submitted', 'wins']
     if (!validKinds.includes(filterKind)) return null
 
-    const filter: ConductorFilter = { kind: filterKind } as ConductorFilter
+    const filter: DispatchFilter = { kind: filterKind } as DispatchFilter
 
     if (rest.includes('/task/')) {
       const taskId = rest.split('/task/')[1]
-      return { navigator: 'conductor', filter, details: { type: 'task', taskId } }
+      return { navigator: 'dispatch', filter, details: { type: 'task', taskId } }
     }
     if (rest.includes('/intent')) {
-      return { navigator: 'conductor', filter, details: { type: 'intent' } }
+      return { navigator: 'dispatch', filter, details: { type: 'intent' } }
     }
-    return { navigator: 'conductor', filter, details: null }
+    return { navigator: 'dispatch', filter, details: null }
   }
 
   // Handle sources

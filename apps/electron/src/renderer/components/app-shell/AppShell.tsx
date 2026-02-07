@@ -101,20 +101,20 @@ import {
   isSourcesNavigation,
   isSettingsNavigation,
   isSkillsNavigation,
-  isConductorNavigation,
+  isDispatchNavigation,
   type NavigationState,
   type ChatFilter,
 } from "@/contexts/NavigationContext"
-import type { SettingsSubpage, ConductorFilter } from "../../../shared/types"
+import type { SettingsSubpage, DispatchFilter } from "../../../shared/types"
 import { SourcesListPanel } from "./SourcesListPanel"
 import { SkillsListPanel } from "./SkillsListPanel"
-import { UserSwitcher } from "@/components/conductor/UserSwitcher"
-import { TaskListPanel } from "@/components/conductor/TaskListPanel"
-import { WinsFeed } from "@/components/conductor/WinsFeed"
-import { DeadlineConversation } from "@/components/conductor/DeadlineConversation"
-import { ConductorLayout } from "@/components/conductor/ConductorLayout"
-import { useConductor } from "@/context/ConductorContext"
-import { myTasksAtom, submittedTasksAtom, myTaskStatusCountsAtom, submittedTaskStatusCountsAtom } from "@/atoms/conductor"
+import { UserSwitcher } from "@/components/dispatch/UserSwitcher"
+import { TaskListPanel } from "@/components/dispatch/TaskListPanel"
+import { WinsFeed } from "@/components/dispatch/WinsFeed"
+import { DeadlineConversation } from "@/components/dispatch/DeadlineConversation"
+import { DispatchLayout } from "@/components/dispatch/DispatchLayout"
+import { useDispatch } from "@/context/DispatchContext"
+import { myTasksAtom, submittedTasksAtom, myTaskStatusCountsAtom, submittedTaskStatusCountsAtom } from "@/atoms/dispatch"
 import { ListTodo, Send as SendIcon, Trophy, Users, Circle, Play, ArrowRightLeft, Clock, Sparkles } from "lucide-react"
 import { PanelHeader } from "./PanelHeader"
 import { EditPopover, getEditConfig, type EditContextKey } from "@/components/ui/EditPopover"
@@ -490,14 +490,14 @@ function AppShellContent({
     openNewChat,
   } = contextValue
 
-  // Better Slack mode: strip to 2-panel conductor layout (no sidebar, no navigator)
+  // Better Slack mode: strip to 2-panel dispatch layout (no sidebar, no navigator)
   const isBetterSlackMode = true
 
-  // Conductor deadline check dialog
-  const { deadlineCheckTaskId, dismissDeadlineCheck, getTask: getConductorTask } = useConductor()
-  const deadlineCheckTask = deadlineCheckTaskId ? getConductorTask(deadlineCheckTaskId) : undefined
+  // Dispatch deadline check dialog
+  const { deadlineCheckTaskId, dismissDeadlineCheck, getTask: getDispatchTask } = useDispatch()
+  const deadlineCheckTask = deadlineCheckTaskId ? getDispatchTask(deadlineCheckTaskId) : undefined
 
-  // Conductor sidebar counts
+  // Dispatch sidebar counts
   const myTasks = useAtomValue(myTasksAtom)
   const submittedTasks = useAtomValue(submittedTasksAtom)
   const myStatusCounts = useAtomValue(myTaskStatusCountsAtom)
@@ -1777,8 +1777,8 @@ function AppShellContent({
 
   // Get title based on navigation state
   const listTitle = React.useMemo(() => {
-    // Conductor navigator
-    if (isConductorNavigation(navState)) {
+    // Dispatch navigator
+    if (isDispatchNavigation(navState)) {
       const titles: Record<string, string> = {
         myTasks: 'My Tasks',
         allTasks: 'All Tasks',
@@ -1945,23 +1945,23 @@ function AppShellContent({
             <div className="flex h-full flex-col pt-[50px] select-none">
               {/* Sidebar Top Section */}
               <div className="flex-1 flex flex-col min-h-0">
-                {/* Conductor-only sidebar for demo */}
+                {/* Dispatch-only sidebar for demo */}
                 <div className="flex-1 overflow-y-auto min-h-0 mask-fade-bottom pb-4">
                 <LeftSidebar
                   isCollapsed={false}
                   getItemProps={getSidebarItemProps}
                   focusedItemId={focusedSidebarItemId}
                   links={[
-                    // --- Conductor (single entry, tabs handle filtering) ---
+                    // --- Dispatch (single entry, tabs handle filtering) ---
                     {
-                      id: "nav:conductor",
-                      title: "Conductor",
+                      id: "nav:dispatch",
+                      title: "Dispatch",
                       icon: Zap,
-                      variant: isConductorNavigation(navState) ? "default" : "ghost",
-                      onClick: () => navigate(routes.view.conductor('myTasks')),
+                      variant: isDispatchNavigation(navState) ? "default" : "ghost",
+                      onClick: () => navigate(routes.view.dispatch('myTasks')),
                     },
                     // --- Separator ---
-                    { id: "separator:conductor-settings", type: "separator" },
+                    { id: "separator:dispatch-settings", type: "separator" },
                     // --- Settings ---
                     {
                       id: "nav:settings",
@@ -1979,7 +1979,7 @@ function AppShellContent({
 
               {/* Sidebar Bottom Section: UserSwitcher + WorkspaceSwitcher + Help icon */}
               <div className="mt-auto shrink-0 py-2 px-2">
-                {/* User switcher for Conductor */}
+                {/* User switcher for Dispatch */}
                 <UserSwitcher />
                 <div className="flex items-center gap-1">
                   {/* Workspace switcher takes available space */}
@@ -2071,20 +2071,20 @@ function AppShellContent({
 
         {/* === MAIN CONTENT (Right) ===
             Flex layout: Session List | Chat Display
-            Better Slack mode: full-width ConductorLayout, no navigator or session list
-            Conductor mode: single ConductorLayout replaces navigator + main panel */}
+            Better Slack mode: full-width DispatchLayout, no navigator or session list
+            Dispatch mode: single DispatchLayout replaces navigator + main panel */}
         <div
           className="flex-1 overflow-hidden min-w-0 flex h-full"
           style={isBetterSlackMode ? undefined : { padding: PANEL_WINDOW_EDGE_SPACING, gap: PANEL_PANEL_SPACING / 2 }}
         >
-          {/* Better Slack mode: always show ConductorLayout full-width, no panel styling */}
+          {/* Better Slack mode: always show DispatchLayout full-width, no panel styling */}
           {isBetterSlackMode ? (
             <div className="flex-1 overflow-hidden min-w-0 pt-[50px]">
-              <ConductorLayout />
+              <DispatchLayout />
             </div>
-          ) : isConductorNavigation(navState) ? (
+          ) : isDispatchNavigation(navState) ? (
             <div className="flex-1 overflow-hidden min-w-0 bg-background shadow-middle rounded-[14px]">
-              <ConductorLayout />
+              <DispatchLayout />
             </div>
           ) : (
           <>

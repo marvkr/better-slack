@@ -1,18 +1,18 @@
 /**
  * TaskListPanel - Scrollable task cards grouped by status.
- * Replaces SessionList in the navigator slot when in conductor mode.
+ * Replaces SessionList in the navigator slot when in dispatch mode.
  */
 
 import { useAtomValue } from 'jotai'
-import type { ConductorTask, ConductorTaskStatus } from '@craft-agent/core/types'
-import { myTasksAtom, submittedTasksAtom, allTasksAtom } from '@/atoms/conductor'
-import type { ConductorFilter } from '../../../shared/types'
+import type { DispatchTask, DispatchTaskStatus } from '@craft-agent/core/types'
+import { myTasksAtom, submittedTasksAtom, allTasksAtom } from '@/atoms/dispatch'
+import type { DispatchFilter } from '../../../shared/types'
 import { TaskCard } from './TaskCard'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-const STATUS_ORDER: ConductorTaskStatus[] = ['in_progress', 'assigned', 'pending', 'reassigned', 'completed']
+const STATUS_ORDER: DispatchTaskStatus[] = ['in_progress', 'assigned', 'pending', 'reassigned', 'completed']
 
-const STATUS_LABELS: Record<ConductorTaskStatus, string> = {
+const STATUS_LABELS: Record<DispatchTaskStatus, string> = {
   pending: 'Pending',
   assigned: 'Assigned',
   in_progress: 'In Progress',
@@ -22,7 +22,7 @@ const STATUS_LABELS: Record<ConductorTaskStatus, string> = {
 }
 
 interface TaskListPanelProps {
-  filter: ConductorFilter
+  filter: DispatchFilter
   selectedTaskId?: string | null
   onTaskSelect: (taskId: string) => void
 }
@@ -33,7 +33,7 @@ export function TaskListPanel({ filter, selectedTaskId, onTaskSelect }: TaskList
   const allTasks = useAtomValue(allTasksAtom)
 
   // Select the right task list based on filter
-  let tasks: ConductorTask[]
+  let tasks: DispatchTask[]
   switch (filter.kind) {
     case 'myTasks':
       tasks = myTasks
@@ -49,7 +49,7 @@ export function TaskListPanel({ filter, selectedTaskId, onTaskSelect }: TaskList
   }
 
   // Group tasks by status
-  const grouped = new Map<ConductorTaskStatus, ConductorTask[]>()
+  const grouped = new Map<DispatchTaskStatus, DispatchTask[]>()
   for (const task of tasks) {
     const existing = grouped.get(task.status) ?? []
     existing.push(task)

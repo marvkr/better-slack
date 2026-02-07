@@ -57,7 +57,7 @@ import {
   isSourcesNavigation,
   isSettingsNavigation,
   isSkillsNavigation,
-  isConductorNavigation,
+  isDispatchNavigation,
   DEFAULT_NAVIGATION_STATE,
 } from '../../shared/types'
 import { sessionMetaMapAtom, updateSessionMetaAtom, type SessionMeta } from '@/atoms/sessions'
@@ -70,7 +70,7 @@ export type { Route }
 
 // Re-export navigation state types for consumers
 export type { NavigationState, ChatFilter }
-export { isChatsNavigation, isSourcesNavigation, isSettingsNavigation, isSkillsNavigation, isConductorNavigation }
+export { isChatsNavigation, isSourcesNavigation, isSettingsNavigation, isSkillsNavigation, isDispatchNavigation }
 
 interface NavigationContextValue {
   /** Navigate to a route */
@@ -676,7 +676,7 @@ export function NavigationProvider({
     // Only initialize once
     if (historyStackRef.current.length === 0) {
       const params = new URLSearchParams(window.location.search)
-      const initialRoute = (params.get('route') || 'conductor/myTasks') as Route
+      const initialRoute = (params.get('route') || 'dispatch/myTasks') as Route
       historyStackRef.current = [initialRoute]
       historyIndexRef.current = 0
       console.log('[Navigation] Initialized history stack with:', initialRoute)

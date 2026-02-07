@@ -1,6 +1,6 @@
-import type { ConductorUser } from '@craft-agent/core/types'
+import type { DispatchUser } from '@craft-agent/core/types'
 
-export const CONDUCTOR_USERS: ConductorUser[] = [
+export const DISPATCH_USERS: DispatchUser[] = [
   {
     id: 'sarah',
     name: 'Sarah Chen',

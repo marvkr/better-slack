@@ -156,16 +156,16 @@ export const routes = {
         ? `settings/${subpage}` as const
         : 'settings' as const,
 
-    /** Conductor views */
-    conductor: (filter: 'myTasks' | 'allTasks' | 'submitted' | 'wins' = 'myTasks', taskId?: string) => {
-      const base = `conductor/${filter}` as const
+    /** Dispatch views */
+    dispatch: (filter: 'myTasks' | 'allTasks' | 'submitted' | 'wins' = 'myTasks', taskId?: string) => {
+      const base = `dispatch/${filter}` as const
       if (taskId) return `${base}/task/${taskId}` as const
       return base
     },
 
-    /** Conductor intent view */
-    conductorIntent: (filter: 'myTasks' | 'allTasks' | 'submitted' | 'wins' = 'myTasks') =>
-      `conductor/${filter}/intent` as const,
+    /** Dispatch intent view */
+    dispatchIntent: (filter: 'myTasks' | 'allTasks' | 'submitted' | 'wins' = 'myTasks') =>
+      `dispatch/${filter}/intent` as const,
   },
 } as const
 

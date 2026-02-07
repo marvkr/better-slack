@@ -1,27 +1,27 @@
 /**
- * Conductor Jotai Atoms
+ * Dispatch Jotai Atoms
  *
- * In-memory state for the Conductor task-native workplace.
+ * In-memory state for the Dispatch task-native workplace.
  * No persistence needed — this is a hackathon demo.
  */
 
 import { atom } from 'jotai'
-import type { ConductorUser, ConductorTask, SharedWin } from '@craft-agent/core/types'
-import { CONDUCTOR_USERS, DEFAULT_USER_ID } from '@/config/conductor-users'
+import type { DispatchUser, DispatchTask, SharedWin } from '@craft-agent/core/types'
+import { DISPATCH_USERS, DEFAULT_USER_ID } from '@/config/dispatch-users'
 
 // ============================================
 // User Atoms
 // ============================================
 
-/** All conductor users (hardcoded team) */
-export const conductorUsersAtom = atom<ConductorUser[]>(CONDUCTOR_USERS)
+/** All dispatch users (hardcoded team) */
+export const dispatchUsersAtom = atom<DispatchUser[]>(DISPATCH_USERS)
 
 /** Currently active user ID */
 export const activeUserIdAtom = atom<string>(DEFAULT_USER_ID)
 
 /** Derived: currently active user */
-export const activeUserAtom = atom<ConductorUser>((get) => {
-  const users = get(conductorUsersAtom)
+export const activeUserAtom = atom<DispatchUser>((get) => {
+  const users = get(dispatchUsersAtom)
   const activeId = get(activeUserIdAtom)
   return users.find(u => u.id === activeId) ?? users[0]
 })
@@ -30,12 +30,12 @@ export const activeUserAtom = atom<ConductorUser>((get) => {
 // Task Atoms
 // ============================================
 
-/** All conductor tasks */
-export const conductorTasksAtom = atom<Map<string, ConductorTask>>(new Map())
+/** All dispatch tasks */
+export const dispatchTasksAtom = atom<Map<string, DispatchTask>>(new Map())
 
 /** Derived: tasks assigned to the active user */
-export const myTasksAtom = atom<ConductorTask[]>((get) => {
-  const tasks = get(conductorTasksAtom)
+export const myTasksAtom = atom<DispatchTask[]>((get) => {
+  const tasks = get(dispatchTasksAtom)
   const activeId = get(activeUserIdAtom)
   return Array.from(tasks.values())
     .filter(t => t.assigneeId === activeId && t.status !== 'cancelled')
@@ -49,8 +49,8 @@ export const myTasksAtom = atom<ConductorTask[]>((get) => {
 })
 
 /** Derived: tasks submitted by the active user */
-export const submittedTasksAtom = atom<ConductorTask[]>((get) => {
-  const tasks = get(conductorTasksAtom)
+export const submittedTasksAtom = atom<DispatchTask[]>((get) => {
+  const tasks = get(dispatchTasksAtom)
   const activeId = get(activeUserIdAtom)
   return Array.from(tasks.values())
     .filter(t => t.requesterId === activeId)
@@ -58,8 +58,8 @@ export const submittedTasksAtom = atom<ConductorTask[]>((get) => {
 })
 
 /** Derived: completed tasks assigned to or submitted by the active user */
-export const completedTasksAtom = atom<ConductorTask[]>((get) => {
-  const tasks = get(conductorTasksAtom)
+export const completedTasksAtom = atom<DispatchTask[]>((get) => {
+  const tasks = get(dispatchTasksAtom)
   const activeId = get(activeUserIdAtom)
   return Array.from(tasks.values())
     .filter(t => t.status === 'completed' && (t.assigneeId === activeId || t.requesterId === activeId))
@@ -67,8 +67,8 @@ export const completedTasksAtom = atom<ConductorTask[]>((get) => {
 })
 
 /** Derived: all tasks (for admin view) */
-export const allTasksAtom = atom<ConductorTask[]>((get) => {
-  const tasks = get(conductorTasksAtom)
+export const allTasksAtom = atom<DispatchTask[]>((get) => {
+  const tasks = get(dispatchTasksAtom)
   return Array.from(tasks.values())
     .filter(t => t.status !== 'cancelled')
     .sort((a, b) => b.createdAt - a.createdAt)
@@ -110,19 +110,19 @@ export const submittedTaskStatusCountsAtom = atom((get) => {
 // ============================================
 
 /** Add a task to the store */
-export const addTaskAtom = atom(null, (get, set, task: ConductorTask) => {
-  const tasks = new Map(get(conductorTasksAtom))
+export const addTaskAtom = atom(null, (get, set, task: DispatchTask) => {
+  const tasks = new Map(get(dispatchTasksAtom))
   tasks.set(task.id, task)
-  set(conductorTasksAtom, tasks)
+  set(dispatchTasksAtom, tasks)
 })
 
 /** Update a task by ID */
-export const updateTaskAtom = atom(null, (get, set, taskId: string, updates: Partial<ConductorTask>) => {
-  const tasks = new Map(get(conductorTasksAtom))
+export const updateTaskAtom = atom(null, (get, set, taskId: string, updates: Partial<DispatchTask>) => {
+  const tasks = new Map(get(dispatchTasksAtom))
   const existing = tasks.get(taskId)
   if (!existing) return
   tasks.set(taskId, { ...existing, ...updates })
-  set(conductorTasksAtom, tasks)
+  set(dispatchTasksAtom, tasks)
 })
 
 /** Add a shared win */
@@ -132,8 +132,8 @@ export const addSharedWinAtom = atom(null, (get, set, win: SharedWin) => {
 
 /** Update user's current task list */
 export const updateUserTasksAtom = atom(null, (get, set, userId: string, taskIds: string[]) => {
-  const users = get(conductorUsersAtom).map(u =>
+  const users = get(dispatchUsersAtom).map(u =>
     u.id === userId ? { ...u, currentTaskIds: taskIds } : u
   )
-  set(conductorUsersAtom, users)
+  set(dispatchUsersAtom, users)
 })

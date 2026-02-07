@@ -5,8 +5,8 @@
 
 import { cn } from '@/lib/utils'
 import { useAtomValue } from 'jotai'
-import type { ConductorTask, TaskPriority } from '@craft-agent/core/types'
-import { conductorUsersAtom } from '@/atoms/conductor'
+import type { DispatchTask, TaskPriority } from '@craft-agent/core/types'
+import { dispatchUsersAtom } from '@/atoms/dispatch'
 import { DeadlineIndicator } from './DeadlineIndicator'
 import { AnonymousBadge } from './AnonymousBadge'
 import { Bot, User, Cpu } from 'lucide-react'
@@ -34,13 +34,13 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 interface TaskCardProps {
-  task: ConductorTask
+  task: DispatchTask
   isSelected: boolean
   onClick: () => void
 }
 
 export function TaskCard({ task, isSelected, onClick }: TaskCardProps) {
-  const users = useAtomValue(conductorUsersAtom)
+  const users = useAtomValue(dispatchUsersAtom)
   const priority = PRIORITY_STYLES[task.priority]
   const TierIcon = TIER_ICONS[task.executionTier]
   const requester = users.find(u => u.id === task.requesterId)

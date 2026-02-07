@@ -16,7 +16,7 @@ import { SplashScreen } from '@/components/SplashScreen'
 import { TooltipProvider } from '@craft-agent/ui'
 import { FocusProvider } from '@/context/FocusContext'
 import { ModalProvider } from '@/context/ModalContext'
-import { ConductorProvider } from '@/context/ConductorContext'
+import { DispatchProvider } from '@/context/DispatchContext'
 import { useGlobalShortcuts } from '@/hooks/keyboard'
 import { useWindowCloseHandler } from '@/hooks/useWindowCloseHandler'
 import { useOnboarding } from '@/hooks/useOnboarding'
@@ -1325,7 +1325,7 @@ export default function App() {
           onInputChange={handleInputChange}
           isReady={appState === 'ready'}
         >
-        <ConductorProvider>
+        <DispatchProvider>
           {/* Handle window close requests (X button, Cmd+W) - close modal first if open */}
           <WindowCloseHandler />
 
@@ -1364,7 +1364,7 @@ export default function App() {
               isDark={isDark}
             />
           )}
-        </ConductorProvider>
+        </DispatchProvider>
         </NavigationProvider>
         </TooltipProvider>
         </ModalProvider>

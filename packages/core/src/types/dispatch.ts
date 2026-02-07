@@ -1,11 +1,11 @@
 /**
- * Conductor Types
+ * Dispatch Types
  *
- * Data model for the Conductor task-native workplace.
+ * Data model for the Dispatch task-native workplace.
  * Tasks wrap sessions — each task can create a CraftAgent session for AI execution.
  */
 
-export interface ConductorUser {
+export interface DispatchUser {
   id: string
   name: string
   role: string
@@ -18,9 +18,9 @@ export interface ConductorUser {
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskExecutionTier = 'ai_direct' | 'ai_agent' | 'human'
-export type ConductorTaskStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'reassigned' | 'cancelled'
+export type DispatchTaskStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'reassigned' | 'cancelled'
 
-export interface ConductorTask {
+export interface DispatchTask {
   id: string
   title: string
   description: string
@@ -29,7 +29,7 @@ export interface ConductorTask {
   assigneeId?: string
   executionTier: TaskExecutionTier
   routingReason?: string
-  status: ConductorTaskStatus
+  status: DispatchTaskStatus
   priority: TaskPriority
   isAnonymous: boolean
   requesterRevealed: boolean

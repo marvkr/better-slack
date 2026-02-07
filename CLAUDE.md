@@ -164,7 +164,7 @@ Each color has a `-rgb` companion (e.g., `--accent-rgb`) used in box-shadows via
   - Change an icon: swap the import (e.g., `ListTodo` → `ClipboardList`)
   - Full icon set: https://lucide.dev/icons
 - **Sidebar status icon colors**: `iconColor` prop on each sidebar link item in `AppShell.tsx` (hardcoded hex values — search for `iconColor:`)
-- **User avatar colors**: `USER_COLORS` in `apps/electron/src/renderer/config/conductor-users.ts`
+- **User avatar colors**: `USER_COLORS` in `apps/electron/src/renderer/config/dispatch-users.ts`
 
 ### Sidebar Item Styling
 

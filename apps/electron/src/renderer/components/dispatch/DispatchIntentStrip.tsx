@@ -1,5 +1,5 @@
 /**
- * ConductorIntentStrip - Chat-like right panel for Better Slack UI.
+ * DispatchIntentStrip - Chat-like right panel for Better Slack UI.
  * Messages as bubbles: left-aligned (received) / right-aligned (sent).
  * Input: white bg, rounded-2xl, send button = dark circle with ArrowUp.
  */
@@ -8,10 +8,10 @@ import { useState, useCallback, useRef } from 'react'
 import { useAtomValue } from 'jotai'
 import { ArrowUp, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { activeUserAtom, conductorUsersAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
+import { activeUserAtom, dispatchUsersAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
 import { useAppShellContext } from '@/context/AppShellContext'
-import { getConductorSystemPrompt } from '@/lib/conductor-prompt'
+import { getDispatchSystemPrompt } from '@/lib/dispatch-prompt'
 import { navigate, routes } from '@/lib/navigate'
 import type { TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
 
@@ -33,15 +33,15 @@ interface ChatMessage {
   sender: 'user' | 'assistant'
 }
 
-export function ConductorIntentStrip() {
+export function DispatchIntentStrip() {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isExecuting, setIsExecuting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeUser = useAtomValue(activeUserAtom)
-  const users = useAtomValue(conductorUsersAtom)
-  const { createTask, completeTask, findBestAssignee } = useConductor()
+  const users = useAtomValue(dispatchUsersAtom)
+  const { createTask, completeTask, findBestAssignee } = useDispatch()
   const { activeWorkspaceId, onCreateSession, onSendMessage } = useAppShellContext()
 
   const addMessage = useCallback((text: string, sender: 'user' | 'assistant') => {
@@ -83,7 +83,7 @@ export function ConductorIntentStrip() {
         permissionMode: 'allow-all',
       })
 
-      const coordinatorPrompt = getConductorSystemPrompt(users)
+      const coordinatorPrompt = getDispatchSystemPrompt(users)
       const message = `${coordinatorPrompt}\n\n---\n\nUser intent from ${activeUser.name} (${activeUser.role}):\n"${intent}"`
       await onSendMessage(session.id, message)
 
@@ -170,7 +170,7 @@ export function ConductorIntentStrip() {
             setIsProcessing(false)
             addMessage(`Task created: ${parsed.title}`, 'assistant')
             setTimeout(() => {
-              navigate(routes.view.conductor('myTasks', task.id))
+              navigate(routes.view.dispatch('myTasks', task.id))
             }, 2000)
           }
         } catch {
@@ -232,8 +232,8 @@ export function ConductorIntentStrip() {
       </div>
 
       {/* Bottom-pinned input */}
-      <div className="shrink-0 px-5 py-4">
-        <div className="relative max-w-lg mx-auto">
+      <div className="shrink-0 px-6 py-5">
+        <div className="relative max-w-2xl mx-auto">
           <textarea
             ref={textareaRef}
             value={input}
@@ -241,18 +241,18 @@ export function ConductorIntentStrip() {
             onKeyDown={handleKeyDown}
             placeholder="What do you want to get done today?"
             className={cn(
-              'w-full rounded-2xl bg-white px-4 py-3 pr-12',
-              'text-sm text-foreground placeholder:text-foreground/25',
+              'w-full rounded-2xl bg-white px-5 py-4 pr-14',
+              'text-base text-foreground placeholder:text-foreground/25',
               'resize-none focus:outline-none shadow-minimal',
             )}
             disabled={isProcessing}
-            rows={1}
+            rows={2}
           />
           <button
             onClick={handleSubmit}
             disabled={!input.trim() || isProcessing}
             className={cn(
-              'absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors',
+              'absolute right-3 bottom-3 h-9 w-9 rounded-full flex items-center justify-center transition-colors',
               input.trim() && !isProcessing
                 ? 'bg-foreground text-background'
                 : 'bg-foreground/10 text-foreground/25'

@@ -4,8 +4,8 @@
  */
 
 import { useAtomValue } from 'jotai'
-import { sharedWinsAtom, conductorTasksAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
+import { sharedWinsAtom, dispatchTasksAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
 import { FeedbackButtons } from './FeedbackButtons'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Bot, Cpu, User, Trophy } from 'lucide-react'
@@ -36,8 +36,8 @@ function timeAgo(timestamp: number): string {
 
 export function WinsFeed() {
   const wins = useAtomValue(sharedWinsAtom)
-  const tasks = useAtomValue(conductorTasksAtom)
-  const { submitFeedback } = useConductor()
+  const tasks = useAtomValue(dispatchTasksAtom)
+  const { submitFeedback } = useDispatch()
 
   if (wins.length === 0) {
     return (

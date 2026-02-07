@@ -1,25 +1,25 @@
 /**
- * ConductorContext
+ * DispatchContext
  *
- * Provides coordinator actions for the Conductor task-native workplace.
+ * Provides coordinator actions for the Dispatch task-native workplace.
  * Manages task lifecycle: submit intent → route → assign → execute → complete → feedback.
  */
 
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { toast } from 'sonner'
-import type { ConductorTask, ConductorUser, TaskFeedback, SharedWin } from '@craft-agent/core/types'
+import type { DispatchTask, DispatchUser, TaskFeedback, SharedWin } from '@craft-agent/core/types'
 import {
-  conductorTasksAtom,
+  dispatchTasksAtom,
   activeUserIdAtom,
-  conductorUsersAtom,
+  dispatchUsersAtom,
   addTaskAtom,
   updateTaskAtom,
   addSharedWinAtom,
   updateUserTasksAtom,
   sharedWinsAtom,
-} from '@/atoms/conductor'
-import { DEMO_TASKS, DEMO_WINS, DEMO_JORDAN_TASK_IDS } from '@/config/conductor-demo-seed'
+} from '@/atoms/dispatch'
+import { DEMO_TASKS, DEMO_WINS, DEMO_JORDAN_TASK_IDS, DEMO_SARAH_TASK_IDS, DEMO_ALEX_TASK_IDS } from '@/config/dispatch-demo-seed'
 
 let taskIdCounter = 0
 function generateTaskId(): string {
@@ -30,9 +30,9 @@ function generateWinId(): string {
   return `win-${Date.now()}-${++taskIdCounter}`
 }
 
-export interface ConductorContextType {
+export interface DispatchContextType {
   /** Submit a new task from parsed coordinator output */
-  createTask: (task: Omit<ConductorTask, 'id' | 'createdAt' | 'status' | 'isAnonymous' | 'requesterRevealed'>) => ConductorTask
+  createTask: (task: Omit<DispatchTask, 'id' | 'createdAt' | 'status' | 'isAnonymous' | 'requesterRevealed'>) => DispatchTask
   /** Assign a task to a user */
   assignTask: (taskId: string, assigneeId: string) => void
   /** Start working on a task */
@@ -48,26 +48,26 @@ export interface ConductorContextType {
   /** Switch the active user */
   switchUser: (userId: string) => void
   /** Get a task by ID */
-  getTask: (taskId: string) => ConductorTask | undefined
+  getTask: (taskId: string) => DispatchTask | undefined
   /** Find the best assignee for required skills */
-  findBestAssignee: (requiredSkills: string[], excludeIds?: string[]) => ConductorUser | null
+  findBestAssignee: (requiredSkills: string[], excludeIds?: string[]) => DispatchUser | null
   /** Task ID that triggered the 90% deadline check dialog (or null) */
   deadlineCheckTaskId: string | null
   /** Dismiss the deadline check dialog */
   dismissDeadlineCheck: () => void
 }
 
-const ConductorContext = createContext<ConductorContextType | null>(null)
+const DispatchContext = createContext<DispatchContextType | null>(null)
 
-export function useConductor(): ConductorContextType {
-  const ctx = useContext(ConductorContext)
-  if (!ctx) throw new Error('useConductor must be used within ConductorProvider')
+export function useDispatch(): DispatchContextType {
+  const ctx = useContext(DispatchContext)
+  if (!ctx) throw new Error('useDispatch must be used within DispatchProvider')
   return ctx
 }
 
-export function ConductorProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useAtom(conductorTasksAtom)
-  const users = useAtomValue(conductorUsersAtom)
+export function DispatchProvider({ children }: { children: ReactNode }) {
+  const [tasks, setTasks] = useAtom(dispatchTasksAtom)
+  const users = useAtomValue(dispatchUsersAtom)
   const [, setActiveUserId] = useAtom(activeUserIdAtom)
   const addTask = useSetAtom(addTaskAtom)
   const updateTask = useSetAtom(updateTaskAtom)
@@ -97,15 +97,17 @@ export function ConductorProvider({ children }: { children: ReactNode }) {
     // Seed wins
     setWins(DEMO_WINS)
 
-    // Seed Jordan's current task IDs
+    // Seed user task IDs
     updateUserTasks('jordan', DEMO_JORDAN_TASK_IDS)
+    updateUserTasks('sarah', DEMO_SARAH_TASK_IDS)
+    updateUserTasks('alex', DEMO_ALEX_TASK_IDS)
   }, [addTask, setWins, updateUserTasks])
 
-  const findBestAssignee = useCallback((requiredSkills: string[], excludeIds: string[] = []): ConductorUser | null => {
+  const findBestAssignee = useCallback((requiredSkills: string[], excludeIds: string[] = []): DispatchUser | null => {
     const candidates = usersRef.current.filter(u => !excludeIds.includes(u.id))
 
     // Score each candidate: skill match * availability
-    let bestUser: ConductorUser | null = null
+    let bestUser: DispatchUser | null = null
     let bestScore = -1
 
     for (const user of candidates) {
@@ -133,9 +135,9 @@ export function ConductorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const createTask = useCallback((
-    input: Omit<ConductorTask, 'id' | 'createdAt' | 'status' | 'isAnonymous' | 'requesterRevealed'>
-  ): ConductorTask => {
-    const task: ConductorTask = {
+    input: Omit<DispatchTask, 'id' | 'createdAt' | 'status' | 'isAnonymous' | 'requesterRevealed'>
+  ): DispatchTask => {
+    const task: DispatchTask = {
       ...input,
       id: generateTaskId(),
       createdAt: Date.now(),
@@ -280,7 +282,7 @@ export function ConductorProvider({ children }: { children: ReactNode }) {
     setActiveUserId(userId)
   }, [setActiveUserId])
 
-  const getTask = useCallback((taskId: string): ConductorTask | undefined => {
+  const getTask = useCallback((taskId: string): DispatchTask | undefined => {
     return tasksRef.current.get(taskId)
   }, [])
 
@@ -334,7 +336,7 @@ export function ConductorProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [updateTask])
 
-  const contextValue: ConductorContextType = {
+  const contextValue: DispatchContextType = {
     createTask,
     assignTask,
     startTask,
@@ -350,8 +352,8 @@ export function ConductorProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ConductorContext.Provider value={contextValue}>
+    <DispatchContext.Provider value={contextValue}>
       {children}
-    </ConductorContext.Provider>
+    </DispatchContext.Provider>
   )
 }

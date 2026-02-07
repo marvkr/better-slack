@@ -1,11 +1,11 @@
 /**
- * Conductor System Prompt
+ * Dispatch System Prompt
  *
  * Generates the coordinator system prompt injected into hidden sessions
  * for intent parsing and task routing.
  */
 
-import type { ConductorUser } from '@craft-agent/core/types'
+import type { DispatchUser } from '@craft-agent/core/types'
 
 /** Returns next Friday at 5pm local time as a Unix timestamp */
 function nextFriday5pm(): number {
@@ -18,7 +18,7 @@ function nextFriday5pm(): number {
   return friday.getTime()
 }
 
-export function getConductorSystemPrompt(users: ConductorUser[]): string {
+export function getDispatchSystemPrompt(users: DispatchUser[]): string {
   const teamProfiles = users.map(u => {
     const capacity = `${u.currentTaskIds.length}/${u.maxConcurrentTasks}`
     return `- ${u.name} (${u.role}): Skills=[${u.skills.join(', ')}], Capacity=${capacity}`

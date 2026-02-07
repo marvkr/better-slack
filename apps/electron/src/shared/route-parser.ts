@@ -12,7 +12,7 @@
 import type {
   NavigationState,
   ChatFilter,
-  ConductorFilter,
+  DispatchFilter,
   SourceFilter,
   SettingsSubpage,
   RightSidebarPanel,
@@ -35,7 +35,7 @@ export interface ParsedRoute {
 // Compound Route Types (new format)
 // =============================================================================
 
-export type NavigatorType = 'chats' | 'sources' | 'skills' | 'settings' | 'conductor'
+export type NavigatorType = 'chats' | 'sources' | 'skills' | 'settings' | 'dispatch'
 
 export interface ParsedCompoundRoute {
   /** The navigator type */
@@ -59,7 +59,7 @@ export interface ParsedCompoundRoute {
  * Known prefixes that indicate a compound route
  */
 const COMPOUND_ROUTE_PREFIXES = [
-  'allChats', 'flagged', 'state', 'label', 'view', 'sources', 'skills', 'settings', 'conductor'
+  'allChats', 'flagged', 'state', 'label', 'view', 'sources', 'skills', 'settings', 'dispatch'
 ]
 
 /**
@@ -92,31 +92,31 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
 
   const first = segments[0]
 
-  // Conductor navigator: conductor/{filter}[/task/{taskId}|/intent]
-  if (first === 'conductor') {
+  // Dispatch navigator: dispatch/{filter}[/task/{taskId}|/intent]
+  if (first === 'dispatch') {
     const filterKind = segments[1] as string | undefined
     const validFilters = ['myTasks', 'allTasks', 'submitted', 'wins']
     if (!filterKind || !validFilters.includes(filterKind)) {
-      return { navigator: 'conductor', details: null }
+      return { navigator: 'dispatch', details: null }
     }
 
-    // Check for task detail: conductor/myTasks/task/{taskId}
+    // Check for task detail: dispatch/myTasks/task/{taskId}
     if (segments[2] === 'task' && segments[3]) {
       return {
-        navigator: 'conductor',
+        navigator: 'dispatch',
         details: { type: 'task', id: segments[3] },
       }
     }
 
-    // Check for intent: conductor/myTasks/intent
+    // Check for intent: dispatch/myTasks/intent
     if (segments[2] === 'intent') {
       return {
-        navigator: 'conductor',
+        navigator: 'dispatch',
         details: { type: 'intent', id: 'intent' },
       }
     }
 
-    return { navigator: 'conductor', details: null }
+    return { navigator: 'dispatch', details: null }
   }
 
   // Settings navigator
@@ -241,11 +241,11 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
  * Build a compound route string from parsed state
  */
 export function buildCompoundRoute(parsed: ParsedCompoundRoute): string {
-  if (parsed.navigator === 'conductor') {
+  if (parsed.navigator === 'dispatch') {
     // We don't have the filter kind in the parsed result, default to myTasks
-    if (!parsed.details) return 'conductor/myTasks'
-    if (parsed.details.type === 'intent') return 'conductor/myTasks/intent'
-    return `conductor/myTasks/task/${parsed.details.id}`
+    if (!parsed.details) return 'dispatch/myTasks'
+    if (parsed.details.type === 'intent') return 'dispatch/myTasks/intent'
+    return `dispatch/myTasks/task/${parsed.details.id}`
   }
 
   if (parsed.navigator === 'settings') {
@@ -464,24 +464,24 @@ export function parseRouteToNavigationState(
  * Convert a ParsedCompoundRoute to NavigationState
  */
 function convertCompoundToNavigationState(compound: ParsedCompoundRoute): NavigationState {
-  // Conductor
-  if (compound.navigator === 'conductor') {
-    const filter: ConductorFilter = { kind: 'myTasks' }
+  // Dispatch
+  if (compound.navigator === 'dispatch') {
+    const filter: DispatchFilter = { kind: 'myTasks' }
     if (compound.details?.type === 'task') {
       return {
-        navigator: 'conductor',
+        navigator: 'dispatch',
         filter,
         details: { type: 'task', taskId: compound.details.id },
       }
     }
     if (compound.details?.type === 'intent') {
       return {
-        navigator: 'conductor',
+        navigator: 'dispatch',
         filter,
         details: { type: 'intent' },
       }
     }
-    return { navigator: 'conductor', filter, details: null }
+    return { navigator: 'dispatch', filter, details: null }
   }
 
   // Settings
@@ -650,8 +650,8 @@ function convertParsedRouteToNavigationState(parsed: ParsedRoute): NavigationSta
  * Build a route string from NavigationState
  */
 export function buildRouteFromNavigationState(state: NavigationState): string {
-  if (state.navigator === 'conductor') {
-    const base = `conductor/${state.filter.kind}`
+  if (state.navigator === 'dispatch') {
+    const base = `dispatch/${state.filter.kind}`
     if (state.details?.type === 'task') {
       return `${base}/task/${state.details.taskId}`
     }

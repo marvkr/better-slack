@@ -5,12 +5,12 @@
 
 import { useAtomValue, useSetAtom } from 'jotai'
 import { cn } from '@/lib/utils'
-import { conductorUsersAtom, activeUserIdAtom } from '@/atoms/conductor'
-import { getUserInitials, USER_COLORS } from '@/config/conductor-users'
+import { dispatchUsersAtom, activeUserIdAtom } from '@/atoms/dispatch'
+import { getUserInitials, USER_COLORS } from '@/config/dispatch-users'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@craft-agent/ui'
 
 export function UserSwitcher() {
-  const users = useAtomValue(conductorUsersAtom)
+  const users = useAtomValue(dispatchUsersAtom)
   const activeUserId = useAtomValue(activeUserIdAtom)
   const setActiveUserId = useSetAtom(activeUserIdAtom)
 

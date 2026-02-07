@@ -1,8 +1,8 @@
-# Conductor Demo Polish: PRD + Implementation Plan
+# Dispatch Demo Polish: PRD + Implementation Plan
 
 ## Context
 
-The Conductor feature is built (types, atoms, navigation, context, 8 UI components, AppShell integration). However, the current implementation doesn't match the **60-second pitch demo** the user wants to present. This plan closes the gaps between what's built and what the demo script requires — specifically 3 rapid-fire beats that showcase intent routing, AI self-execution, and conversational reassignment.
+The Dispatch feature is built (types, atoms, navigation, context, 8 UI components, AppShell integration). However, the current implementation doesn't match the **60-second pitch demo** the user wants to present. This plan closes the gaps between what's built and what the demo script requires — specifically 3 rapid-fire beats that showcase intent routing, AI self-execution, and conversational reassignment.
 
 ---
 
@@ -107,14 +107,14 @@ graph LR
     end
 
     subgraph State["State Layer (Jotai)"]
-        TA[conductorTasksAtom]
-        UA[conductorUsersAtom]
+        TA[dispatchTasksAtom]
+        UA[dispatchUsersAtom]
         WA[sharedWinsAtom]
         AUI[activeUserIdAtom]
     end
 
     subgraph Logic["Logic Layer"]
-        CC[ConductorContext]
+        CC[DispatchContext]
         DM[Deadline Monitor]
         DS[Demo Seed]
     end
@@ -146,7 +146,7 @@ graph LR
 
 ### 1. Rename users to match demo script
 
-**File**: `apps/electron/src/renderer/config/conductor-users.ts`
+**File**: `apps/electron/src/renderer/config/dispatch-users.ts`
 
 | Old | New | ID | Role | Skills |
 |-----|-----|----|------|--------|
@@ -154,13 +154,13 @@ graph LR
 | Bob Kim | Jordan Rivers | `jordan` | Data Analyst | data, analysis, sql, spreadsheets, visualization, python |
 | Carla Davis | Alex Park | `alex` | PM | planning, writing, analysis, spreadsheets, user-research, roadmapping |
 
-- Update `CONDUCTOR_USERS` array
+- Update `DISPATCH_USERS` array
 - Change `DEFAULT_USER_ID` from `'alice'` to `'sarah'`
 - Update `USER_COLORS` keys: `alice→sarah`, `bob→jordan`, `carla→alex`
 
 ### 2. Add visible AI reasoning to IntentInput
 
-**File**: `apps/electron/src/renderer/components/conductor/IntentInput.tsx`
+**File**: `apps/electron/src/renderer/components/dispatch/IntentInput.tsx`
 
 Changes:
 - Add `reasoningMessage` and `inlineResult` state
@@ -176,7 +176,7 @@ Changes:
 
 ### 3. Add deadline parsing to coordinator prompt
 
-**File**: `apps/electron/src/renderer/lib/conductor-prompt.ts`
+**File**: `apps/electron/src/renderer/lib/dispatch-prompt.ts`
 
 Changes:
 - Add deadline parsing section to system prompt with examples ("by Friday" → timestamp)
@@ -185,7 +185,7 @@ Changes:
 
 ### 4. Create DeadlineConversation dialog
 
-**New file**: `apps/electron/src/renderer/components/conductor/DeadlineConversation.tsx`
+**New file**: `apps/electron/src/renderer/components/dispatch/DeadlineConversation.tsx`
 
 A dialog component that simulates the AI checking in with the assignee:
 - Shows pre-scripted AI message: `"Hey {firstName}, your task '{title}' is due in {timeLeft} — will you be able to finish in time?"`
@@ -193,14 +193,14 @@ A dialog component that simulates the AI checking in with the assignee:
 - On "No": shows user response → AI reassignment message → triggers `reassignTask()` → closes after 2s
 - On "Yes": shows "Great!" → closes
 
-### 5. Wire DeadlineConversation into ConductorContext
+### 5. Wire DeadlineConversation into DispatchContext
 
-**File**: `apps/electron/src/renderer/context/ConductorContext.tsx`
+**File**: `apps/electron/src/renderer/context/DispatchContext.tsx`
 
 Changes:
 - Add `deadlineCheckTask` state (the task ID that triggered 90% check, or `null`)
 - Add `dismissDeadlineCheck` function
-- Expose both on `ConductorContextType`
+- Expose both on `DispatchContextType`
 - Replace auto-reassign at 90% with: `setDeadlineCheckTask(task.id)` (triggers dialog instead)
 
 ### 6. Render DeadlineConversation in MainContentPanel (or AppShell)
@@ -208,13 +208,13 @@ Changes:
 **File**: `apps/electron/src/renderer/components/app-shell/AppShell.tsx` (or a wrapper)
 
 Changes:
-- Read `deadlineCheckTask` from `useConductor()`
+- Read `deadlineCheckTask` from `useDispatch()`
 - When non-null, render `<DeadlineConversation>` dialog overlay
 - On reassign callback: call `findBestAssignee` + `reassignTask` from context
 
 ### 7. Create demo seed data
 
-**New file**: `apps/electron/src/renderer/config/conductor-demo-seed.ts`
+**New file**: `apps/electron/src/renderer/config/dispatch-demo-seed.ts`
 
 Pre-loaded state for reliable demo:
 - 1 completed task (in Wins feed): "Customer satisfaction report Q4" completed by Jordan
@@ -223,7 +223,7 @@ Pre-loaded state for reliable demo:
 
 ### 8. Load demo seed on mount
 
-**File**: `apps/electron/src/renderer/context/ConductorContext.tsx`
+**File**: `apps/electron/src/renderer/context/DispatchContext.tsx`
 
 Changes:
 - Import demo seed data
@@ -232,7 +232,7 @@ Changes:
 
 ### 9. Export DeadlineConversation from barrel
 
-**File**: `apps/electron/src/renderer/components/conductor/index.ts`
+**File**: `apps/electron/src/renderer/components/dispatch/index.ts`
 
 - Add `export { DeadlineConversation } from './DeadlineConversation'`
 
@@ -242,14 +242,14 @@ Changes:
 
 | File | Action | What Changes |
 |------|--------|-------------|
-| `config/conductor-users.ts` | **Modify** | Rename Alice→Sarah, Bob→Jordan, Carla→Alex; update skills, colors, default |
-| `components/conductor/IntentInput.tsx` | **Modify** | Add reasoning display, inline results, updated suggestion chips |
-| `lib/conductor-prompt.ts` | **Modify** | Add deadline parsing section + helper |
-| `components/conductor/DeadlineConversation.tsx` | **Create** | Conversational dialog for 90% deadline check |
-| `context/ConductorContext.tsx` | **Modify** | Add deadlineCheckTask state, replace auto-reassign with dialog trigger, seed demo data |
+| `config/dispatch-users.ts` | **Modify** | Rename Alice→Sarah, Bob→Jordan, Carla→Alex; update skills, colors, default |
+| `components/dispatch/IntentInput.tsx` | **Modify** | Add reasoning display, inline results, updated suggestion chips |
+| `lib/dispatch-prompt.ts` | **Modify** | Add deadline parsing section + helper |
+| `components/dispatch/DeadlineConversation.tsx` | **Create** | Conversational dialog for 90% deadline check |
+| `context/DispatchContext.tsx` | **Modify** | Add deadlineCheckTask state, replace auto-reassign with dialog trigger, seed demo data |
 | `components/app-shell/AppShell.tsx` | **Modify** | Render DeadlineConversation when triggered |
-| `config/conductor-demo-seed.ts` | **Create** | Pre-seeded tasks + wins for reliable demo |
-| `components/conductor/index.ts` | **Modify** | Export DeadlineConversation |
+| `config/dispatch-demo-seed.ts` | **Create** | Pre-seeded tasks + wins for reliable demo |
+| `components/dispatch/index.ts` | **Modify** | Export DeadlineConversation |
 
 **Total**: 6 modified files, 2 new files.
 

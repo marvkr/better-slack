@@ -43,14 +43,14 @@ export type {
 } from './message.ts';
 export { generateMessageId } from './message.ts';
 
-// Conductor types
+// Dispatch types
 export type {
-  ConductorUser,
+  DispatchUser,
   TaskPriority,
   TaskExecutionTier,
-  ConductorTaskStatus,
-  ConductorTask,
+  DispatchTaskStatus,
+  DispatchTask,
   TaskFeedback,
   SharedWin,
-} from './conductor.ts';
+} from './dispatch.ts';
 

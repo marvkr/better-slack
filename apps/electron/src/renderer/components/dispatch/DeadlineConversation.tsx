@@ -9,18 +9,18 @@ import { useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { Bot, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { conductorUsersAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
+import { dispatchUsersAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { ConductorTask } from '@craft-agent/core/types'
+import type { DispatchTask } from '@craft-agent/core/types'
 
 interface DeadlineConversationProps {
-  task: ConductorTask
+  task: DispatchTask
   onDismiss: () => void
 }
 
@@ -37,8 +37,8 @@ function formatTimeLeft(deadline: number): string {
 
 export function DeadlineConversation({ task, onDismiss }: DeadlineConversationProps) {
   const [step, setStep] = useState<ConversationStep>('ask')
-  const users = useAtomValue(conductorUsersAtom)
-  const { findBestAssignee, reassignTask } = useConductor()
+  const users = useAtomValue(dispatchUsersAtom)
+  const { findBestAssignee, reassignTask } = useDispatch()
 
   const assignee = users.find(u => u.id === task.assigneeId)
   const firstName = assignee?.name.split(' ')[0] ?? 'Team member'

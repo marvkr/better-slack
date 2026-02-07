@@ -6,8 +6,8 @@
 import { useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
-import { conductorTasksAtom, conductorUsersAtom, activeUserIdAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
+import { dispatchTasksAtom, dispatchUsersAtom, activeUserIdAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
 import { ArrowUp } from 'lucide-react'
 
 interface TaskDetailPageProps {
@@ -15,10 +15,10 @@ interface TaskDetailPageProps {
 }
 
 export function TaskDetailPage({ taskId }: TaskDetailPageProps) {
-  const tasks = useAtomValue(conductorTasksAtom)
-  const users = useAtomValue(conductorUsersAtom)
+  const tasks = useAtomValue(dispatchTasksAtom)
+  const users = useAtomValue(dispatchUsersAtom)
   const activeUserId = useAtomValue(activeUserIdAtom)
-  const { startTask, completeTask } = useConductor()
+  const { startTask, completeTask } = useDispatch()
   const [reply, setReply] = useState('')
 
   const task = tasks.get(taskId)

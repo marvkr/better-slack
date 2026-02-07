@@ -12,13 +12,13 @@ import { useState, useCallback, useRef } from 'react'
 import { useAtomValue } from 'jotai'
 import { Send, Loader2, Sparkles, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { activeUserAtom, conductorUsersAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
+import { activeUserAtom, dispatchUsersAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
 import { useAppShellContext } from '@/context/AppShellContext'
-import { getConductorSystemPrompt } from '@/lib/conductor-prompt'
+import { getDispatchSystemPrompt } from '@/lib/dispatch-prompt'
 import { navigate, routes } from '@/lib/navigate'
 import { toast } from 'sonner'
-import type { ConductorTask, TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
+import type { DispatchTask, TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
 
 interface CoordinatorResponse {
   title: string
@@ -46,8 +46,8 @@ export function IntentInput() {
   const [isExecuting, setIsExecuting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeUser = useAtomValue(activeUserAtom)
-  const users = useAtomValue(conductorUsersAtom)
-  const { createTask, completeTask, findBestAssignee } = useConductor()
+  const users = useAtomValue(dispatchUsersAtom)
+  const { createTask, completeTask, findBestAssignee } = useDispatch()
   const { activeWorkspaceId, onCreateSession, onSendMessage } = useAppShellContext()
 
   const resetState = useCallback(() => {
@@ -99,7 +99,7 @@ export function IntentInput() {
       })
 
       // Build the coordinator prompt with current team state
-      const coordinatorPrompt = getConductorSystemPrompt(users)
+      const coordinatorPrompt = getDispatchSystemPrompt(users)
 
       // Send the intent wrapped in coordinator instructions
       const message = `${coordinatorPrompt}\n\n---\n\nUser intent from ${activeUser.name} (${activeUser.role}):\n"${intent}"`
@@ -206,7 +206,7 @@ export function IntentInput() {
             // For human/ai_agent tasks, navigate to the task after a brief pause
             setIsProcessing(false)
             setTimeout(() => {
-              navigate(routes.view.conductor('myTasks', task.id))
+              navigate(routes.view.dispatch('myTasks', task.id))
             }, 2000)
             toast.success(`Task created: ${parsed.title}`)
           }

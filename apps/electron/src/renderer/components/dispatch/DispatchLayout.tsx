@@ -1,28 +1,28 @@
 /**
- * ConductorLayout - 2-column layout for the conductor navigator.
+ * DispatchLayout - 2-column layout for the dispatch navigator.
  * Left column: tab bar (todo/sent/done) + scrollable task cards
- * Right column: TaskDetailPage when a task is selected, or ConductorIntentStrip when none
+ * Right column: TaskDetailPage when a task is selected, or DispatchIntentStrip when none
  */
 
 import { useState, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
-import { myTasksAtom, submittedTasksAtom, completedTasksAtom } from '@/atoms/conductor'
-import { useConductor } from '@/context/ConductorContext'
-import { useNavigationState, isConductorNavigation } from '@/contexts/NavigationContext'
+import { myTasksAtom, submittedTasksAtom, completedTasksAtom } from '@/atoms/dispatch'
+import { useDispatch } from '@/context/DispatchContext'
+import { useNavigationState, isDispatchNavigation } from '@/contexts/NavigationContext'
 import { navigate, routes } from '@/lib/navigate'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ConductorTaskCard } from './ConductorTaskCard'
-import { ConductorIntentStrip } from './ConductorIntentStrip'
+import { DispatchTaskCard } from './DispatchTaskCard'
+import { DispatchIntentStrip } from './DispatchIntentStrip'
 import { TaskDetailPage } from './TaskDetailPage'
-import type { ConductorTask } from '@craft-agent/core/types'
+import type { DispatchTask } from '@craft-agent/core/types'
 
 type Tab = 'todo' | 'sent' | 'done'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'todo', label: 'todo' },
-  { id: 'sent', label: 'sent' },
-  { id: 'done', label: 'done' },
+  { id: 'todo', label: 'Todo' },
+  { id: 'sent', label: 'Sent' },
+  { id: 'done', label: 'Done' },
 ]
 
 const EMPTY_MESSAGES: Record<Tab, string> = {
@@ -31,10 +31,10 @@ const EMPTY_MESSAGES: Record<Tab, string> = {
   done: 'No completed tasks yet',
 }
 
-export function ConductorLayout() {
+export function DispatchLayout() {
   const [activeTab, setActiveTab] = useState<Tab>('todo')
   const navState = useNavigationState()
-  const { startTask, completeTask, cancelTask } = useConductor()
+  const { startTask, completeTask, cancelTask } = useDispatch()
 
   const myTasks = useAtomValue(myTasksAtom)
   const submittedTasks = useAtomValue(submittedTasksAtom)
@@ -46,22 +46,22 @@ export function ConductorLayout() {
     [myTasks],
   )
 
-  const tasks: ConductorTask[] = activeTab === 'todo'
+  const tasks: DispatchTask[] = activeTab === 'todo'
     ? todoTasks
     : activeTab === 'sent'
       ? submittedTasks
       : completedTasks
 
   // Selected task from navigation state
-  const selectedTaskId = isConductorNavigation(navState) && navState.details?.type === 'task'
+  const selectedTaskId = isDispatchNavigation(navState) && navState.details?.type === 'task'
     ? navState.details.taskId
     : null
 
   const handleTaskClick = (taskId: string) => {
-    navigate(routes.view.conductor('myTasks', taskId))
+    navigate(routes.view.dispatch('myTasks', taskId))
   }
 
-  const handleAccept = (task: ConductorTask) => {
+  const handleAccept = (task: DispatchTask) => {
     if (task.status === 'in_progress') {
       completeTask(task.id, 'Marked as complete')
     } else {
@@ -69,7 +69,7 @@ export function ConductorLayout() {
     }
   }
 
-  const handleReject = (task: ConductorTask) => {
+  const handleReject = (task: DispatchTask) => {
     cancelTask(task.id)
   }
 
@@ -78,7 +78,7 @@ export function ConductorLayout() {
       {/* Left column: tabs + task list */}
       <div className="flex flex-col h-full w-[45%] min-w-0 shrink-0">
         {/* Tab bar - lowercase serif, bold active vs light inactive */}
-        <div className="shrink-0 flex items-center gap-6 px-6 pt-5 pb-3 border-b border-foreground/[0.08]">
+        <div className="shrink-0 flex items-baseline gap-6 px-6 pt-5 pb-3 h-16">
           {TABS.map(tab => (
             <button
               key={tab.id}
@@ -89,7 +89,7 @@ export function ConductorLayout() {
                 letterSpacing: '-0.02em',
                 color: activeTab === tab.id ? '#1E1E1E' : '#B3B3B3',
               }}
-              className="font-normal transition-all pb-1"
+              className="font-normal pb-1 transition-[font-size,color] duration-200 ease-out"
             >
               {tab.label}
             </button>
@@ -105,7 +105,7 @@ export function ConductorLayout() {
           <ScrollArea className="flex-1">
             <div className="flex flex-col gap-3 px-5 py-4 pb-6">
               {tasks.map(task => (
-                <ConductorTaskCard
+                <DispatchTaskCard
                   key={task.id}
                   task={task}
                   isSelected={task.id === selectedTaskId}
@@ -119,15 +119,17 @@ export function ConductorLayout() {
         )}
       </div>
 
-      {/* Vertical divider */}
-      <div className="w-px bg-foreground/5 shrink-0" />
+      {/* Vertical divider - padded top and bottom */}
+      <div className="shrink-0 py-6">
+        <div className="w-px h-full bg-foreground/[0.08]" />
+      </div>
 
       {/* Right column: task detail or intent strip */}
       <div className="flex-1 min-w-0 h-full">
         {selectedTaskId ? (
           <TaskDetailPage taskId={selectedTaskId} />
         ) : (
-          <ConductorIntentStrip />
+          <DispatchIntentStrip />
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-# Better Slack
+# Dispatch
 
 Desktop agent app built with Electron, React, and the Claude Agent SDK.
 

@@ -1,20 +1,19 @@
 /**
- * ConductorIntentStrip - Bottom-pinned input bar for the right column.
- * Simplified version of IntentInput that pins to the bottom with a chat-like feel.
- * Reuses the same AI coordinator logic (hidden session, polling, JSON parsing).
+ * ConductorIntentStrip - Chat-like right panel for Better Slack UI.
+ * Messages as bubbles: left-aligned (received) / right-aligned (sent).
+ * Input: white bg, rounded-2xl, send button = dark circle with ArrowUp.
  */
 
 import { useState, useCallback, useRef } from 'react'
 import { useAtomValue } from 'jotai'
-import { ArrowUp, Loader2, Sparkles, CheckCircle2 } from 'lucide-react'
+import { ArrowUp, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { activeUserAtom, conductorUsersAtom } from '@/atoms/conductor'
 import { useConductor } from '@/context/ConductorContext'
 import { useAppShellContext } from '@/context/AppShellContext'
 import { getConductorSystemPrompt } from '@/lib/conductor-prompt'
 import { navigate, routes } from '@/lib/navigate'
-import { toast } from 'sonner'
-import type { ConductorTask, TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
+import type { TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
 
 interface CoordinatorResponse {
   title: string
@@ -28,11 +27,16 @@ interface CoordinatorResponse {
   deadline?: number
 }
 
+interface ChatMessage {
+  id: string
+  text: string
+  sender: 'user' | 'assistant'
+}
+
 export function ConductorIntentStrip() {
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [reasoningMessage, setReasoningMessage] = useState<string | null>(null)
-  const [inlineResult, setInlineResult] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isExecuting, setIsExecuting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeUser = useAtomValue(activeUserAtom)
@@ -40,10 +44,8 @@ export function ConductorIntentStrip() {
   const { createTask, completeTask, findBestAssignee } = useConductor()
   const { activeWorkspaceId, onCreateSession, onSendMessage } = useAppShellContext()
 
-  const resetState = useCallback(() => {
-    setReasoningMessage(null)
-    setInlineResult(null)
-    setIsExecuting(false)
+  const addMessage = useCallback((text: string, sender: 'user' | 'assistant') => {
+    setMessages(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, text, sender }])
   }, [])
 
   const buildReasoningMessage = useCallback((parsed: CoordinatorResponse, assignee: { name: string; role: string } | null): string => {
@@ -70,9 +72,9 @@ export function ConductorIntentStrip() {
     if (!input.trim() || isProcessing || !activeWorkspaceId) return
 
     setIsProcessing(true)
-    resetState()
     const intent = input.trim()
     setInput('')
+    addMessage(intent, 'user')
 
     try {
       const session = await onCreateSession(activeWorkspaceId, {
@@ -101,7 +103,7 @@ export function ConductorIntentStrip() {
 
       const response = await pollForResponse()
       if (!response) {
-        toast.error('Coordinator timed out. Please try again.')
+        addMessage('Timed out. Please try again.', 'assistant')
         setIsProcessing(false)
         return
       }
@@ -118,7 +120,7 @@ export function ConductorIntentStrip() {
 
           const assigneeUser = assigneeId ? users.find(u => u.id === assigneeId) : null
           const reasoning = buildReasoningMessage(parsed, assigneeUser ? { name: assigneeUser.name, role: assigneeUser.role } : null)
-          setReasoningMessage(reasoning)
+          addMessage(reasoning, 'assistant')
 
           const task = createTask({
             title: parsed.title,
@@ -162,29 +164,29 @@ export function ConductorIntentStrip() {
             const aiResult = await pollForAiResult()
             const resultText = aiResult ?? 'Task completed by AI'
             completeTask(task.id, resultText)
-            setInlineResult(resultText)
+            addMessage(resultText, 'assistant')
             setIsExecuting(false)
           } else {
             setIsProcessing(false)
+            addMessage(`Task created: ${parsed.title}`, 'assistant')
             setTimeout(() => {
               navigate(routes.view.conductor('myTasks', task.id))
             }, 2000)
-            toast.success(`Task created: ${parsed.title}`)
           }
         } catch {
-          toast.error('Could not parse coordinator response')
+          addMessage('Could not parse response. Please try again.', 'assistant')
           setIsProcessing(false)
         }
       } else {
-        setReasoningMessage(response)
+        addMessage(response, 'assistant')
         setIsProcessing(false)
       }
     } catch (error) {
       console.error('Intent submission failed:', error)
-      toast.error('Failed to process your request')
+      addMessage('Something went wrong. Please try again.', 'assistant')
       setIsProcessing(false)
     }
-  }, [input, isProcessing, activeWorkspaceId, activeUser, users, onCreateSession, onSendMessage, createTask, completeTask, findBestAssignee, buildReasoningMessage, resetState])
+  }, [input, isProcessing, activeWorkspaceId, activeUser, users, onCreateSession, onSendMessage, createTask, completeTask, findBestAssignee, buildReasoningMessage, addMessage])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -193,60 +195,44 @@ export function ConductorIntentStrip() {
     }
   }
 
-  const hasResponse = reasoningMessage || inlineResult
-
   return (
     <div className="flex-1 flex flex-col h-full">
-      {/* Upper area: reasoning / result cards */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col items-center justify-center">
-        {!hasResponse && !isProcessing && !isExecuting && (
-          <div className="text-center max-w-md">
-            <Sparkles className="h-8 w-8 text-accent/40 mx-auto mb-4" />
-            <p className="text-sm text-muted-foreground/60">
+      {/* Chat messages area */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        {messages.length === 0 && !isProcessing && !isExecuting && (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-sm text-foreground/25">
               What do you want to get done today?
             </p>
           </div>
         )}
 
-        {reasoningMessage && (
-          <div className="w-full max-w-lg rounded-xl border border-accent/20 bg-accent/[0.03] p-4 mb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              <span className="text-xs font-medium text-accent">Coordinator AI</span>
+        <div className="flex flex-col gap-3 max-w-lg mx-auto">
+          {messages.map(msg => (
+            <div
+              key={msg.id}
+              className={cn(
+                'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm',
+                msg.sender === 'user'
+                  ? 'self-end bg-foreground/[0.08] text-foreground'
+                  : 'self-start bg-foreground/[0.03] text-foreground/80',
+              )}
+            >
+              {msg.text}
             </div>
-            <p className="text-sm text-foreground/80">{reasoningMessage}</p>
-          </div>
-        )}
+          ))}
 
-        {isExecuting && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            <span>AI is working on it...</span>
-          </div>
-        )}
-
-        {inlineResult && (
-          <div className="w-full max-w-lg rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span className="text-xs font-medium text-green-600 dark:text-green-400">Done</span>
+          {(isProcessing || isExecuting) && (
+            <div className="self-start bg-foreground/[0.03] rounded-2xl px-4 py-2.5 text-sm text-foreground/50 flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {isExecuting ? 'AI is working on it...' : 'Thinking...'}
             </div>
-            <p className="text-sm text-foreground/80 whitespace-pre-wrap line-clamp-6">{inlineResult}</p>
-          </div>
-        )}
-
-        {hasResponse && !isExecuting && !isProcessing && (
-          <button
-            onClick={resetState}
-            className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Start a new request
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Bottom-pinned input */}
-      <div className="shrink-0 border-t border-foreground/5 px-4 py-3">
+      <div className="shrink-0 px-5 py-4">
         <div className="relative max-w-lg mx-auto">
           <textarea
             ref={textareaRef}
@@ -255,9 +241,9 @@ export function ConductorIntentStrip() {
             onKeyDown={handleKeyDown}
             placeholder="What do you want to get done today?"
             className={cn(
-              'w-full rounded-xl border border-foreground/10 bg-foreground/[0.02] px-4 py-2.5 pr-10',
-              'text-sm text-foreground placeholder:text-muted-foreground/40',
-              'resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40',
+              'w-full rounded-2xl bg-white px-4 py-3 pr-12',
+              'text-sm text-foreground placeholder:text-foreground/25',
+              'resize-none focus:outline-none shadow-minimal',
             )}
             disabled={isProcessing}
             rows={1}
@@ -266,16 +252,16 @@ export function ConductorIntentStrip() {
             onClick={handleSubmit}
             disabled={!input.trim() || isProcessing}
             className={cn(
-              'absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors',
+              'absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors',
               input.trim() && !isProcessing
-                ? 'bg-accent text-white hover:bg-accent/90'
-                : 'bg-foreground/5 text-muted-foreground/40'
+                ? 'bg-foreground text-background'
+                : 'bg-foreground/10 text-foreground/25'
             )}
           >
             {isProcessing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <ArrowUp className="h-3.5 w-3.5" />
+              <ArrowUp className="h-4 w-4" />
             )}
           </button>
         </div>

@@ -490,6 +490,9 @@ function AppShellContent({
     openNewChat,
   } = contextValue
 
+  // Better Slack mode: strip to 2-panel conductor layout (no sidebar, no navigator)
+  const isBetterSlackMode = true
+
   // Conductor deadline check dialog
   const { deadlineCheckTaskId, dismissDeadlineCheck, getTask: getConductorTask } = useConductor()
   const deadlineCheckTask = deadlineCheckTaskId ? getConductorTask(deadlineCheckTaskId) : undefined
@@ -1891,10 +1894,10 @@ function AppShellContent({
         */}
         <div className="titlebar-drag-region fixed top-0 left-0 right-0 h-[50px] z-titlebar" />
 
-      {/* App Menu - fixed position, always visible (hidden in focused mode)
+      {/* App Menu - fixed position, always visible (hidden in focused mode and Better Slack mode)
           On macOS: offset 86px to avoid stoplight controls
           On Windows/Linux: offset 12px (no stoplight controls) */}
-      {!isFocusedMode && (() => {
+      {!isFocusedMode && !isBetterSlackMode && (() => {
         const menuLeftOffset = isMac ? 86 : 12
         return (
           <div
@@ -1920,11 +1923,11 @@ function AppShellContent({
 
       {/* === OUTER LAYOUT: Sidebar | Main Content === */}
       <div className="h-full flex items-stretch relative">
-        {/* === SIDEBAR (Left) === (hidden in focused mode)
+        {/* === SIDEBAR (Left) === (hidden in focused mode and Better Slack mode)
             Animated width with spring physics for smooth 60-120fps transitions.
             Uses overflow-hidden to clip content during collapse animation.
             Resizable via drag handle on right edge (200-400px range). */}
-        {!isFocusedMode && (
+        {!isFocusedMode && !isBetterSlackMode && (
         <motion.div
           initial={false}
           animate={{ width: isSidebarVisible ? sidebarWidth : 0 }}
@@ -2040,8 +2043,8 @@ function AppShellContent({
         </motion.div>
         )}
 
-        {/* Sidebar Resize Handle (hidden in focused mode) */}
-        {!isFocusedMode && (
+        {/* Sidebar Resize Handle (hidden in focused mode and Better Slack mode) */}
+        {!isFocusedMode && !isBetterSlackMode && (
         <div
           ref={resizeHandleRef}
           onMouseDown={(e) => { e.preventDefault(); setIsResizing('sidebar') }}
@@ -2068,13 +2071,18 @@ function AppShellContent({
 
         {/* === MAIN CONTENT (Right) ===
             Flex layout: Session List | Chat Display
+            Better Slack mode: full-width ConductorLayout, no navigator or session list
             Conductor mode: single ConductorLayout replaces navigator + main panel */}
         <div
           className="flex-1 overflow-hidden min-w-0 flex h-full"
-          style={{ padding: PANEL_WINDOW_EDGE_SPACING, gap: PANEL_PANEL_SPACING / 2 }}
+          style={isBetterSlackMode ? undefined : { padding: PANEL_WINDOW_EDGE_SPACING, gap: PANEL_PANEL_SPACING / 2 }}
         >
-          {/* Conductor: 2-column layout replaces navigator + resize handle + main panel */}
-          {isConductorNavigation(navState) ? (
+          {/* Better Slack mode: always show ConductorLayout full-width, no panel styling */}
+          {isBetterSlackMode ? (
+            <div className="flex-1 overflow-hidden min-w-0 pt-[50px]">
+              <ConductorLayout />
+            </div>
+          ) : isConductorNavigation(navState) ? (
             <div className="flex-1 overflow-hidden min-w-0 bg-background shadow-middle rounded-[14px]">
               <ConductorLayout />
             </div>

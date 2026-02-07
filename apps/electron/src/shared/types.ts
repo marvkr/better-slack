@@ -1250,8 +1250,8 @@ export const isConductorNavigation = (
  * Default navigation state - allChats with no selection
  */
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
-  navigator: 'chats',
-  filter: { kind: 'allChats' },
+  navigator: 'conductor',
+  filter: { kind: 'myTasks' },
   details: null,
 }
 

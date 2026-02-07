@@ -76,46 +76,34 @@ export function ConductorLayout() {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Left column: tabs + task list */}
-      <div className="flex flex-col h-full w-[55%] min-w-0 shrink-0">
-        {/* Tab bar */}
-        <div className="shrink-0 flex items-center gap-1 px-4 pt-4 pb-2">
-          {TABS.map(tab => {
-            const count = tab.id === 'todo' ? todoTasks.length
-              : tab.id === 'sent' ? submittedTasks.length
-              : completedTasks.length
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                  activeTab === tab.id
-                    ? 'bg-foreground/[0.07] text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03]',
-                )}
-              >
-                {tab.label}
-                {count > 0 && (
-                  <span className={cn(
-                    'ml-1.5 text-[10px] tabular-nums',
-                    activeTab === tab.id ? 'text-foreground/60' : 'text-muted-foreground/60',
-                  )}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+      <div className="flex flex-col h-full w-[45%] min-w-0 shrink-0">
+        {/* Tab bar - lowercase serif, bold active vs light inactive */}
+        <div className="shrink-0 flex items-center gap-6 px-6 pt-5 pb-3 border-b border-foreground/[0.08]">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                fontFamily: '"Source Serif 4", Georgia, serif',
+                fontSize: activeTab === tab.id ? 28 : 20,
+                letterSpacing: '-0.02em',
+                color: activeTab === tab.id ? '#1E1E1E' : '#B3B3B3',
+              }}
+              className="font-normal transition-all pb-1"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Task list */}
         {tasks.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4">
+          <div className="flex-1 flex items-center justify-center text-foreground/30 text-sm px-6">
             {EMPTY_MESSAGES[activeTab]}
           </div>
         ) : (
           <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-2 px-4 py-2 pb-4">
+            <div className="flex flex-col gap-3 px-5 py-4 pb-6">
               {tasks.map(task => (
                 <ConductorTaskCard
                   key={task.id}

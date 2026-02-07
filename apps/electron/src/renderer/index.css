@@ -16,7 +16,7 @@
 @property --background {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(0.975 0.00528 106);
+  initial-value: oklch(0.93 0.015 85);
 }
 
 @property --foreground {
@@ -70,7 +70,7 @@
 /* Light Mode */
 :root {
   /* === 6 BASE COLORS === */
-  --background: oklch(0.975 0.00528 106);
+  --background: oklch(0.93 0.015 85);
   --foreground: oklch(0.185 0.01 270);
   --foreground-rgb: 38, 36, 42;             /* RGB for shadow borders */
   --accent: oklch(0.65 0.18 55);            /* orange - brand, Auto mode */
@@ -165,7 +165,7 @@
 
   /* Layout */
   --font-size-base: 15px;
-  --radius: 0rem;
+  --radius: 0.75rem;
   --spacing: 0.25rem;
   --tracking-normal: 0em;
 
@@ -341,6 +341,12 @@ html[data-font="inter"] {
   --font-default: var(--font-sans);
   font-optical-sizing: auto;
   font-feature-settings: "cv01", "cv02", "cv03", "cv04", "case";
+}
+
+/* Source Serif 4 Font - Opt-in via data-font="source-serif" attribute */
+html[data-font="source-serif"] {
+  --font-sans: "Source Serif 4", Georgia, serif;
+  --font-default: var(--font-sans);
 }
 
 /* Theme integration for Tailwind v4 */

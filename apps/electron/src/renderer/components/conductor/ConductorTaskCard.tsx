@@ -1,26 +1,14 @@
 /**
- * ConductorTaskCard - Redesigned card with accept/reject action buttons.
- * Used in the 2-column ConductorLayout.
+ * ConductorTaskCard - Clean task card for Better Slack UI.
+ * Layout: left side (title + description + date pill), right side (large X and check circles).
+ * Subtle border, white bg. Selected state: beige bg + red dot + chevron.
  */
 
 import { cn } from '@/lib/utils'
 import { useAtomValue } from 'jotai'
-import type { ConductorTask, TaskPriority } from '@craft-agent/core/types'
-import { conductorUsersAtom, activeUserIdAtom } from '@/atoms/conductor'
-import { CheckCircle2, XCircle, Calendar, Bot, User, Cpu } from 'lucide-react'
-
-const PRIORITY_STYLES: Record<TaskPriority, { label: string; className: string }> = {
-  urgent: { label: 'URGENT', className: 'bg-destructive/15 text-destructive' },
-  high: { label: 'HIGH', className: 'bg-orange-500/15 text-orange-600' },
-  medium: { label: 'MED', className: 'bg-yellow-500/15 text-yellow-600' },
-  low: { label: 'LOW', className: 'bg-foreground/5 text-muted-foreground' },
-}
-
-const TIER_ICONS = {
-  ai_direct: Bot,
-  ai_agent: Cpu,
-  human: User,
-}
+import type { ConductorTask } from '@craft-agent/core/types'
+import { activeUserIdAtom } from '@/atoms/conductor'
+import { X, Check, Calendar, ChevronRight } from 'lucide-react'
 
 interface ConductorTaskCardProps {
   task: ConductorTask
@@ -31,11 +19,7 @@ interface ConductorTaskCardProps {
 }
 
 export function ConductorTaskCard({ task, isSelected, onClick, onAccept, onReject }: ConductorTaskCardProps) {
-  const users = useAtomValue(conductorUsersAtom)
   const activeUserId = useAtomValue(activeUserIdAtom)
-  const priority = PRIORITY_STYLES[task.priority]
-  const TierIcon = TIER_ICONS[task.executionTier]
-  const requester = users.find(u => u.id === task.requesterId)
   const isAssignedToMe = task.assigneeId === activeUserId
   const showActions = isAssignedToMe && task.status !== 'completed' && task.status !== 'cancelled'
 
@@ -44,79 +28,83 @@ export function ConductorTaskCard({ task, isSelected, onClick, onAccept, onRejec
     ? deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null
 
+  // Friendly relative deadline label
+  const getDeadlineLabel = () => {
+    if (!deadlineDate) return null
+    const now = new Date()
+    const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Tomorrow'
+    if (diffDays > 1 && diffDays <= 7) {
+      const dayName = deadlineDate.toLocaleDateString('en-US', { weekday: 'long' })
+      return `Next ${dayName}`
+    }
+    return deadlineStr
+  }
+
+  const deadlineLabel = getDeadlineLabel()
+
   return (
     <div
       onClick={onClick}
       className={cn(
-        'group relative bg-background border border-foreground/[0.06] rounded-xl px-4 py-3.5 cursor-pointer transition-all',
-        'hover:border-foreground/10 hover:shadow-sm',
-        isSelected && 'border-accent/30 shadow-sm ring-1 ring-accent/10',
+        'group relative rounded-2xl cursor-pointer transition-all flex items-center',
+        isSelected
+          ? 'bg-foreground/[0.04] border border-foreground/[0.06]'
+          : 'bg-white border border-foreground/[0.08] hover:border-foreground/[0.12]',
       )}
     >
-      {/* Top: priority badge + tier icon */}
-      <div className="flex items-center gap-2 mb-2">
-        <TierIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full', priority.className)}>
-          {priority.label}
-        </span>
-        {task.status === 'completed' && (
-          <span className="text-[10px] font-medium text-success px-1.5 py-0.5 rounded-full bg-success/10">
-            Done
+      {/* Left: text content */}
+      <div className="flex-1 min-w-0 px-5 py-4">
+        {/* Red dot for selected */}
+        {isSelected && (
+          <div className="absolute top-3.5 right-3.5 h-2.5 w-2.5 rounded-full bg-destructive" />
+        )}
+
+        {/* Title */}
+        <h3 className="text-base font-bold text-foreground line-clamp-1">
+          {task.title}
+        </h3>
+
+        {/* Description */}
+        {task.description && (
+          <p className="text-sm text-foreground/40 line-clamp-1 mt-0.5">
+            {task.description}
+          </p>
+        )}
+
+        {/* Date pill */}
+        {deadlineLabel && (
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-white bg-foreground/80 pl-2.5 pr-3 py-1 rounded-full mt-3">
+            <Calendar className="h-3.5 w-3.5" />
+            {deadlineLabel}
           </span>
         )}
       </div>
 
-      {/* Title */}
-      <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-1">
-        {task.title}
-      </h3>
-
-      {/* Description */}
-      {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2.5">
-          {task.description}
-        </p>
-      )}
-
-      {/* Bottom row: deadline + requester + actions */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {deadlineStr && (
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground bg-foreground/[0.03] px-1.5 py-0.5 rounded-md">
-              <Calendar className="h-2.5 w-2.5" />
-              {deadlineStr}
-            </span>
-          )}
-          {requester && !task.isAnonymous && (
-            <span className="text-[10px] text-muted-foreground truncate">
-              from {requester.name.split(' ')[0]}
-            </span>
-          )}
-          {task.isAnonymous && !task.requesterRevealed && (
-            <span className="text-[10px] text-muted-foreground italic">Anonymous</span>
-          )}
+      {/* Right: action buttons or chevron */}
+      {isSelected ? (
+        <div className="shrink-0 pr-5">
+          <ChevronRight className="h-5 w-5 text-foreground/25" />
         </div>
-
-        {/* Accept / Reject buttons */}
-        {showActions && (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); onAccept?.() }}
-              className="p-1 rounded-full text-success/70 hover:text-success hover:bg-success/10 transition-colors"
-              title={task.status === 'in_progress' ? 'Complete' : 'Accept'}
-            >
-              <CheckCircle2 className="h-4.5 w-4.5" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onReject?.() }}
-              className="p-1 rounded-full text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              title="Reject"
-            >
-              <XCircle className="h-4.5 w-4.5" />
-            </button>
-          </div>
-        )}
-      </div>
+      ) : showActions ? (
+        <div className="flex items-center gap-2.5 shrink-0 pr-5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onReject?.() }}
+            className="h-11 w-11 rounded-full bg-foreground/[0.07] flex items-center justify-center text-foreground/70 hover:bg-foreground/[0.12] transition-colors"
+            title="Reject"
+          >
+            <X className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onAccept?.() }}
+            className="h-11 w-11 rounded-full bg-success/15 flex items-center justify-center text-success hover:bg-success/25 transition-colors"
+            title={task.status === 'in_progress' ? 'Complete' : 'Accept'}
+          >
+            <Check className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -1,40 +1,14 @@
 /**
- * TaskDetailPage - Full task view with details, actions, and AI chat.
+ * TaskDetailPage - Chat-bubble style task detail view for Better Slack UI.
+ * Simple header with task title, chat bubbles for content, input at bottom.
  */
 
+import { useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
 import { conductorTasksAtom, conductorUsersAtom, activeUserIdAtom } from '@/atoms/conductor'
 import { useConductor } from '@/context/ConductorContext'
-import { FeedbackButtons } from './FeedbackButtons'
-import { AnonymousBadge } from './AnonymousBadge'
-import { DeadlineIndicator } from './DeadlineIndicator'
-import { USER_COLORS, getUserInitials } from '@/config/conductor-users'
-import { Bot, Cpu, User, Play, CheckCircle2, ArrowRightLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import type { TaskPriority, TaskExecutionTier, ConductorTaskStatus } from '@craft-agent/core/types'
-
-const PRIORITY_STYLES: Record<TaskPriority, { label: string; className: string }> = {
-  urgent: { label: 'Urgent', className: 'bg-destructive/20 text-destructive' },
-  high: { label: 'High', className: 'bg-orange-500/20 text-orange-600' },
-  medium: { label: 'Medium', className: 'bg-yellow-500/20 text-yellow-600' },
-  low: { label: 'Low', className: 'bg-foreground/5 text-muted-foreground' },
-}
-
-const STATUS_LABELS: Record<ConductorTaskStatus, string> = {
-  pending: 'Pending',
-  assigned: 'Assigned',
-  in_progress: 'In Progress',
-  completed: 'Completed',
-  reassigned: 'Reassigned',
-  cancelled: 'Cancelled',
-}
-
-const TIER_LABELS: Record<TaskExecutionTier, { label: string; icon: typeof Bot }> = {
-  ai_direct: { label: 'AI Direct', icon: Bot },
-  ai_agent: { label: 'AI Agent', icon: Cpu },
-  human: { label: 'Human', icon: User },
-}
+import { ArrowUp } from 'lucide-react'
 
 interface TaskDetailPageProps {
   taskId: string
@@ -44,172 +18,119 @@ export function TaskDetailPage({ taskId }: TaskDetailPageProps) {
   const tasks = useAtomValue(conductorTasksAtom)
   const users = useAtomValue(conductorUsersAtom)
   const activeUserId = useAtomValue(activeUserIdAtom)
-  const { startTask, completeTask, submitFeedback, findBestAssignee, reassignTask } = useConductor()
+  const { startTask, completeTask } = useConductor()
+  const [reply, setReply] = useState('')
 
   const task = tasks.get(taskId)
   if (!task) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-foreground/30">
         <p className="text-sm">Task not found</p>
       </div>
     )
   }
 
   const requester = users.find(u => u.id === task.requesterId)
-  const assignee = users.find(u => u.id === task.assigneeId)
-  const priority = PRIORITY_STYLES[task.priority]
-  const tierInfo = TIER_LABELS[task.executionTier]
-  const TierIcon = tierInfo.icon
   const isAssignedToMe = task.assigneeId === activeUserId
-  const isMySubmission = task.requesterId === activeUserId
+  const canAct = isAssignedToMe && task.status !== 'completed' && task.status !== 'cancelled'
+
+  const handleReply = () => {
+    if (!reply.trim()) return
+    if (canAct) {
+      completeTask(task.id, reply.trim())
+    }
+    setReply('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleReply()
+    }
+  }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="shrink-0 border-b border-foreground/5 px-6 py-4">
-        <div className="flex items-start gap-3">
-          <TierIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-foreground">{task.title}</h2>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', priority.className)}>
-                {priority.label}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {STATUS_LABELS[task.status]}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                · {tierInfo.label}
-              </span>
-              {task.deadline && (
-                <DeadlineIndicator deadline={task.deadline} startedAt={task.startedAt} />
-              )}
+      {/* Simple header - just the task title */}
+      <div className="shrink-0 px-6 pt-5 pb-4 border-b border-foreground/[0.06]">
+        <h2 className="text-lg font-bold text-foreground">{task.title}</h2>
+      </div>
+
+      {/* Chat-style body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex flex-col gap-3 max-w-lg">
+          {/* Description as received bubble */}
+          {task.description && (
+            <div className="self-start max-w-[85%] rounded-2xl bg-foreground/[0.03] px-4 py-2.5 text-sm text-foreground/80">
+              {task.description}
             </div>
+          )}
+
+          {/* Original intent as sent bubble */}
+          <div className="self-end max-w-[85%] rounded-2xl bg-foreground/[0.08] px-4 py-2.5 text-sm text-foreground">
+            "{task.originalIntent}"
+            {requester && !task.isAnonymous && (
+              <span className="block text-xs text-foreground/40 mt-1">
+                — {requester.name}
+              </span>
+            )}
           </div>
+
+          {/* Routing reason */}
+          {task.routingReason && (
+            <div className="self-start max-w-[85%] rounded-2xl bg-foreground/[0.03] px-4 py-2.5 text-sm text-foreground/60 italic">
+              {task.routingReason}
+            </div>
+          )}
+
+          {/* Result as received bubble */}
+          {task.result && (
+            <div className="self-start max-w-[85%] rounded-2xl bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80">
+              {task.result}
+            </div>
+          )}
+
+          {/* Action prompts */}
+          {canAct && (task.status === 'assigned' || task.status === 'reassigned') && (
+            <button
+              onClick={() => startTask(task.id)}
+              className="self-start text-sm text-accent font-medium hover:underline"
+            >
+              Start working on this
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-        {/* Description */}
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Description</h3>
-          <p className="text-sm text-foreground/90 whitespace-pre-wrap">{task.description}</p>
-        </section>
-
-        {/* Original intent */}
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Original Request</h3>
-          <p className="text-sm text-foreground/70 italic">"{task.originalIntent}"</p>
-        </section>
-
-        {/* Routing reason */}
-        {task.routingReason && (
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Routing Reason</h3>
-            <p className="text-sm text-foreground/80">{task.routingReason}</p>
-          </section>
-        )}
-
-        {/* Requester */}
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Requested By</h3>
-          <AnonymousBadge
-            isAnonymous={task.isAnonymous}
-            requesterRevealed={task.requesterRevealed}
-            requesterName={requester?.name}
-          />
-        </section>
-
-        {/* Assignee */}
-        {assignee && (
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Assigned To</h3>
-            <div className="flex items-center gap-2">
-              <div
-                className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-                style={{ backgroundColor: USER_COLORS[assignee.id] ?? '#6b7280' }}
-              >
-                {getUserInitials(assignee.name)}
-              </div>
-              <span className="text-sm font-medium">{assignee.name}</span>
-              <span className="text-xs text-muted-foreground">· {assignee.role}</span>
-            </div>
-          </section>
-        )}
-
-        {/* Required skills */}
-        {task.requiredSkills.length > 0 && (
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Required Skills</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {task.requiredSkills.map(skill => (
-                <span key={skill} className="text-xs px-2 py-0.5 rounded-full bg-foreground/5 text-muted-foreground">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Result */}
-        {task.result && (
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Result</h3>
-            <div className="rounded-lg border border-foreground/5 bg-foreground/[0.02] p-3">
-              <p className="text-sm text-foreground/90 whitespace-pre-wrap">{task.result}</p>
-            </div>
-          </section>
-        )}
-
-        {/* Feedback */}
-        {task.status === 'completed' && isMySubmission && (
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Feedback</h3>
-            <FeedbackButtons
-              feedback={task.feedback}
-              showKudos={task.executionTier === 'human'}
-              onSubmit={(feedback) => submitFeedback(task.id, feedback)}
+      {/* Input at bottom */}
+      {canAct && (
+        <div className="shrink-0 px-5 py-4">
+          <div className="relative max-w-lg">
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={task.status === 'in_progress' ? 'Reply to complete...' : 'Add a note...'}
+              className={cn(
+                'w-full rounded-2xl bg-white px-4 py-3 pr-12',
+                'text-sm text-foreground placeholder:text-foreground/25',
+                'resize-none focus:outline-none shadow-minimal',
+              )}
+              rows={1}
             />
-          </section>
-        )}
-      </div>
-
-      {/* Action bar */}
-      {isAssignedToMe && task.status !== 'completed' && task.status !== 'cancelled' && (
-        <div className="shrink-0 border-t border-foreground/5 px-6 py-3 flex items-center gap-2">
-          {(task.status === 'assigned' || task.status === 'reassigned') && (
-            <Button
-              onClick={() => startTask(task.id)}
-              className="gap-2"
-              size="sm"
+            <button
+              onClick={handleReply}
+              disabled={!reply.trim()}
+              className={cn(
+                'absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center transition-colors',
+                reply.trim()
+                  ? 'bg-foreground text-background'
+                  : 'bg-foreground/10 text-foreground/25'
+              )}
             >
-              <Play className="h-3.5 w-3.5" />
-              Start Working
-            </Button>
-          )}
-          {task.status === 'in_progress' && (
-            <Button
-              onClick={() => completeTask(task.id, 'Marked as complete')}
-              className="gap-2"
-              size="sm"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Mark Complete
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-muted-foreground"
-            onClick={() => {
-              const next = findBestAssignee(task.requiredSkills, [activeUserId])
-              if (next) reassignTask(task.id, next.id, 'Manual reassignment')
-            }}
-          >
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            Reassign
-          </Button>
+              <ArrowUp className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>

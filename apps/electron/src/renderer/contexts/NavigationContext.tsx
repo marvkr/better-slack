@@ -676,7 +676,7 @@ export function NavigationProvider({
     // Only initialize once
     if (historyStackRef.current.length === 0) {
       const params = new URLSearchParams(window.location.search)
-      const initialRoute = (params.get('route') || 'allChats') as Route
+      const initialRoute = (params.get('route') || 'conductor/myTasks') as Route
       historyStackRef.current = [initialRoute]
       historyIndexRef.current = 0
       console.log('[Navigation] Initialized history stack with:', initialRoute)

@@ -111,7 +111,6 @@ import { SkillsListPanel } from "./SkillsListPanel"
 import { UserSwitcher } from "@/components/dispatch/UserSwitcher"
 import { TaskListPanel } from "@/components/dispatch/TaskListPanel"
 import { WinsFeed } from "@/components/dispatch/WinsFeed"
-import { DeadlineConversation } from "@/components/dispatch/DeadlineConversation"
 import { DispatchLayout } from "@/components/dispatch/DispatchLayout"
 import { useDispatch } from "@/context/DispatchContext"
 import { myTasksAtom, submittedTasksAtom, myTaskStatusCountsAtom, submittedTaskStatusCountsAtom } from "@/atoms/dispatch"
@@ -493,9 +492,6 @@ function AppShellContent({
   // Better Slack mode: strip to 2-panel dispatch layout (no sidebar, no navigator)
   const isBetterSlackMode = true
 
-  // Dispatch deadline check dialog
-  const { deadlineCheckTaskId, dismissDeadlineCheck, getTask: getDispatchTask } = useDispatch()
-  const deadlineCheckTask = deadlineCheckTaskId ? getDispatchTask(deadlineCheckTaskId) : undefined
 
   // Dispatch sidebar counts
   const myTasks = useAtomValue(myTasksAtom)
@@ -3043,13 +3039,6 @@ function AppShellContent({
         </>
       )}
 
-      {/* Deadline conversation dialog (Beat 3) */}
-      {deadlineCheckTask && (
-        <DeadlineConversation
-          task={deadlineCheckTask}
-          onDismiss={dismissDeadlineCheck}
-        />
-      )}
 
       </TooltipProvider>
     </AppShellProvider>

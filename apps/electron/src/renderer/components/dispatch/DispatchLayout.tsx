@@ -112,6 +112,7 @@ export function DispatchLayout() {
                   onClick={() => handleTaskClick(task.id)}
                   onAccept={() => handleAccept(task)}
                   onReject={() => handleReject(task)}
+                  isSentByMe={activeTab === 'sent'}
                 />
               ))}
             </div>

@@ -429,6 +429,7 @@ export type SessionEvent =
   | { type: 'session_unflagged'; sessionId: string }
   | { type: 'session_model_changed'; sessionId: string; model: string | null }
   | { type: 'todo_state_changed'; sessionId: string; todoState: TodoState }
+  | { type: 'name_changed'; sessionId: string; name: string }
   | { type: 'session_deleted'; sessionId: string }
   | { type: 'session_shared'; sessionId: string; sharedUrl: string }
   | { type: 'session_unshared'; sessionId: string }
@@ -801,6 +802,8 @@ export interface ElectronAPI {
   readFile(path: string): Promise<string>
   /** Read a file as a data URL (data:{mime};base64,...) for binary preview (images, PDFs) */
   readFileDataUrl(path: string): Promise<string>
+  /** Read a file as binary data (Uint8Array) */
+  readFileBinary(path: string): Promise<Uint8Array>
   openFileDialog(): Promise<string[]>
   readFileAttachment(path: string): Promise<FileAttachment | null>
   storeAttachment(sessionId: string, attachment: FileAttachment): Promise<import('../../../../packages/core/src/types/index.ts').StoredAttachment>

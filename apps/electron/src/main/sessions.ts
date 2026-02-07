@@ -609,14 +609,14 @@ export class SessionManager {
         }
 
         // Todo state
-        if (managed.todoState !== header.todoState) {
+        if (managed.todoState !== header.todoState && header.todoState !== undefined) {
           managed.todoState = header.todoState
           this.sendEvent({ type: 'todo_state_changed', sessionId, todoState: header.todoState }, managed.workspace.id)
           changed = true
         }
 
         // Name
-        if (managed.name !== header.name) {
+        if (managed.name !== header.name && header.name !== undefined) {
           managed.name = header.name
           this.sendEvent({ type: 'name_changed', sessionId, name: header.name }, managed.workspace.id)
           changed = true

@@ -109,7 +109,7 @@ export default function InputSettingsPage() {
                     label="Send message with"
                     description="Keyboard shortcut for sending messages"
                     value={sendMessageKey}
-                    onValueChange={handleSendMessageKeyChange}
+                    onValueChange={(value) => handleSendMessageKeyChange(value as 'enter' | 'cmd-enter')}
                     options={[
                       { value: 'enter', label: 'Enter', description: 'Use Shift+Enter for new lines' },
                       { value: 'cmd-enter', label: '⌘ Enter', description: 'Use Enter for new lines' },

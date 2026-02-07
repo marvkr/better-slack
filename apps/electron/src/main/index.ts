@@ -19,8 +19,8 @@ import * as Sentry from '@sentry/electron/main'
 //   3. Add @sentry/esbuild-plugin to scripts/electron-build-main.ts (handles main process maps)
 Sentry.init({
   dsn: process.env.SENTRY_ELECTRON_INGEST_URL,
-  environment: app.isPackaged ? 'production' : 'development',
-  release: app.getVersion(),
+  environment: app?.isPackaged ? 'production' : 'development',
+  release: app?.getVersion?.() || 'unknown',
   // Enabled whenever the ingest URL is available — works in both production (baked via CI)
   // and development (injected via .env / 1Password). Filter by environment in Sentry dashboard.
   enabled: !!process.env.SENTRY_ELECTRON_INGEST_URL,

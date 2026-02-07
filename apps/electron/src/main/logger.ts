@@ -6,7 +6,7 @@ import { app } from 'electron'
  * - true: `bun run electron:start` or `electron .` or packaged app with `--debug`
  * - false: bundled .app/.exe release without --debug flag
  */
-export const isDebugMode = !app.isPackaged || process.argv.includes('--debug')
+export const isDebugMode = !app?.isPackaged || process.argv.includes('--debug')
 
 // Configure transports based on debug mode
 if (isDebugMode) {

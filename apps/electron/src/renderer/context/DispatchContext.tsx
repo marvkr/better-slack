@@ -20,8 +20,9 @@ import {
   sharedWinsAtom,
 } from '@/atoms/dispatch'
 import { DEMO_TASKS, DEMO_WINS, DEMO_JORDAN_TASK_IDS, DEMO_SARAH_TASK_IDS, DEMO_ALEX_TASK_IDS } from '@/config/dispatch-demo-seed'
-import { getWebSocket, closeWebSocket } from '@/lib/websocket-client'
+import { getWebSocket, closeWebSocket, subscribe, sendMessage } from '@/lib/websocket-client'
 import * as api from '@/lib/api-client'
+import type { BackendTask } from '@/lib/api-client'
 
 let taskIdCounter = 0
 function generateTaskId(): string {
@@ -30,6 +31,32 @@ function generateTaskId(): string {
 
 function generateWinId(): string {
   return `win-${Date.now()}-${++taskIdCounter}`
+}
+
+/**
+ * Map backend task format to frontend DispatchTask format
+ */
+function mapBackendTaskToDispatchTask(backendTask: BackendTask): DispatchTask {
+  return {
+    id: backendTask.id,
+    title: backendTask.title,
+    description: backendTask.description,
+    originalIntent: backendTask.description, // Use description as original intent
+    requesterId: backendTask.requesterId,
+    assigneeId: backendTask.assigneeId || undefined,
+    executionTier: backendTask.aiCompleted ? 'ai_direct' : 'human', // Infer execution tier
+    status: backendTask.status as DispatchTask['status'],
+    priority: backendTask.priority as DispatchTask['priority'],
+    isAnonymous: false, // Backend doesn't track this yet
+    requesterRevealed: backendTask.status === 'completed', // Reveal on completion
+    createdAt: new Date(backendTask.createdAt).getTime(),
+    deadline: backendTask.deadline ? new Date(backendTask.deadline).getTime() : undefined,
+    startedAt: backendTask.assignedAt ? new Date(backendTask.assignedAt).getTime() : undefined,
+    completedAt: backendTask.completedAt ? new Date(backendTask.completedAt).getTime() : undefined,
+    result: backendTask.aiResult || undefined,
+    requiredSkills: backendTask.requiredSkills || [],
+    hasUnreadMessages: false, // Default to false, can be updated by WebSocket
+  }
 }
 
 export interface DispatchContextType {
@@ -92,45 +119,57 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
     if (initializedRef.current) return
     initializedRef.current = true
 
-    const ws = getWebSocket()
+    // Ensure WebSocket connection is established
+    getWebSocket()
 
-    // Subscribe to current user's updates
-    ws.subscribeToUser(activeUserId)
-
-    // Handle WebSocket messages
-    const unsubscribe = ws.onMessage((message) => {
+    // Subscribe to WebSocket messages
+    const unsubscribe = subscribe((message: any) => {
       console.log('[DispatchContext] WebSocket message:', message.type)
 
       switch (message.type) {
         case 'connected':
           setIsConnected(true)
+          // Send subscription message for current user
+          sendMessage({ type: 'subscribe', userId: activeUserId })
           break
 
         case 'task:created':
-          // Add new task to state
+          // Add new task to state (map from backend format if needed)
           if (message.task) {
-            addTask(message.task)
+            const dispatchTask = message.task.createdAt
+              ? mapBackendTaskToDispatchTask(message.task as BackendTask)
+              : message.task as DispatchTask
+            addTask(dispatchTask)
           }
           break
 
         case 'task:updated':
-          // Update existing task
+          // Update existing task (map from backend format if needed)
           if (message.task) {
-            updateTask(message.task.id, message.task)
+            const dispatchTask = message.task.createdAt
+              ? mapBackendTaskToDispatchTask(message.task as BackendTask)
+              : message.task as DispatchTask
+            updateTask(dispatchTask.id, dispatchTask)
           }
           break
 
         case 'task:completed':
-          // Mark task as completed
+          // Mark task as completed (map from backend format if needed)
           if (message.task) {
-            updateTask(message.task.id, message.task)
+            const dispatchTask = message.task.createdAt
+              ? mapBackendTaskToDispatchTask(message.task as BackendTask)
+              : message.task as DispatchTask
+            updateTask(dispatchTask.id, dispatchTask)
           }
           break
 
         case 'task:reassigned':
-          // Handle reassignment
+          // Handle reassignment (map from backend format if needed)
           if (message.task) {
-            updateTask(message.task.id, message.task)
+            const dispatchTask = message.task.createdAt
+              ? mapBackendTaskToDispatchTask(message.task as BackendTask)
+              : message.task as DispatchTask
+            updateTask(dispatchTask.id, dispatchTask)
             toast(`Task reassigned to ${message.toUserId}`)
           }
           break
@@ -151,10 +190,28 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
           api.getDoneTasks(activeUserId),
         ])
 
-        console.log('[DispatchContext] Loaded tasks:', { myTasks, sentTasks, doneTasks })
+        console.log('[DispatchContext] Loaded tasks from backend:', { myTasks, sentTasks, doneTasks })
 
-        // Add tasks to state
-        // TODO: Map backend task format to frontend DispatchTask format
+        // Map backend tasks to frontend format and add to state
+        const allBackendTasks = [...myTasks, ...sentTasks, ...doneTasks]
+
+        // Use a Set to deduplicate tasks (since a task might appear in multiple lists)
+        const uniqueTaskIds = new Set<string>()
+        const uniqueTasks: DispatchTask[] = []
+
+        for (const backendTask of allBackendTasks) {
+          if (!uniqueTaskIds.has(backendTask.id)) {
+            uniqueTaskIds.add(backendTask.id)
+            uniqueTasks.push(mapBackendTaskToDispatchTask(backendTask))
+          }
+        }
+
+        console.log('[DispatchContext] Adding tasks to state:', uniqueTasks.length)
+
+        // Add all tasks to state
+        for (const task of uniqueTasks) {
+          addTask(task)
+        }
       } catch (error) {
         console.error('[DispatchContext] Failed to fetch initial data:', error)
         // Fallback to demo data if backend is unavailable

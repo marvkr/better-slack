@@ -22,11 +22,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/renderer/*"],
-      "@config/*": ["../../packages/shared/src/config/*"],
-      "@craft-agent/shared": ["../../packages/shared/src/index.ts"],
-      "@craft-agent/shared/*": ["../../packages/shared/src/*"]
+      "@config/*": ["src/renderer/config/*"],
+      "@craft-agent/shared/icons": ["src/renderer/lib/icons.ts"],
+      "@craft-agent/shared/colors": ["src/renderer/lib/colors.ts"],
+      "@craft-agent/shared/*": ["src/renderer/lib/*"]
     }
   },
-  "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

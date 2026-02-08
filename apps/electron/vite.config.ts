@@ -48,6 +48,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src/renderer'),
+      '@config': resolve(__dirname, 'src/renderer/config'),
+      '@craft-agent/shared/icons': resolve(__dirname, 'src/renderer/lib/icons.ts'),
+      '@craft-agent/shared/colors': resolve(__dirname, 'src/renderer/lib/colors.ts'),
+      '@craft-agent/shared': resolve(__dirname, 'src/renderer/lib'),
       // Force all React imports to use the root node_modules React
       // Bun hoists deps to root. This prevents "multiple React copies" error
       'react': resolve(__dirname, '../../node_modules/react'),

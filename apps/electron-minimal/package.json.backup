@@ -1,0 +1,12 @@
+{
+  "name": "dispatch-electron-minimal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Minimal Electron app for Dispatch",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "start": "../../node_modules/.bin/electron ."
+  }
+}

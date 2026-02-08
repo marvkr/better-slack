@@ -3,16 +3,11 @@
  * Just opens a window and loads the Vite dev server
  */
 
-const electron = require('electron')
-const app = electron.app
-const BrowserWindow = electron.BrowserWindow
-
-if (!app || !BrowserWindow) {
-  console.error('Failed to load Electron modules')
-  process.exit(1)
-}
+const { app, BrowserWindow } = require('electron')
 
 let mainWindow = null
+
+console.log('📍 Electron modules loaded:', { app: !!app, BrowserWindow: !!BrowserWindow })
 
 function createWindow() {
   mainWindow = new BrowserWindow({

@@ -898,8 +898,9 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
           </>
         )}
         {/* Native tools: Tool name (shrink-0) */}
-        {/* @ts-ignore - TypeScript incorrectly infers unknown type for this conditional JSX */}
-        {!isMcpOrApiTool && <span className="shrink-0">{displayedName}</span>}
+        <>
+          {!isMcpOrApiTool ? <span className="shrink-0">{displayedName}</span> : null}
+        </>
         {/* Diff stats and filename badges - after tool name */}
         {!isMcpOrApiTool && !isBackgrounded && diffStats && (
           <span className="flex items-center gap-1.5 text-[10px] shrink-0">

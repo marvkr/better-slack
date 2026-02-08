@@ -1,31 +1,7 @@
-# Dispatch
+![Todo + create task](https://github.com/user-attachments/assets/ace51cfa-bc4e-4966-993b-4b7704dcb98e)
 
-Desktop agent app built with Electron, React, and the Claude Agent SDK.
+![Task details](https://github.com/user-attachments/assets/fb92745a-2bb7-4d51-9318-e13726776ca5)
 
-## Development
+![Sent](https://github.com/user-attachments/assets/d868f2e5-fa54-40ad-a186-7f8a2e7047ad)
 
-```bash
-bun install
-bun run electron:dev    # Hot reload
-bun run electron:start  # Build and run
-bun run typecheck:all   # Type checking
-```
-
-## Architecture
-
-Bun-based Electron monorepo:
-
-```
-apps/electron/       # Desktop app (Electron + React + shadcn/ui + Tailwind v4)
-packages/core/       # Shared TypeScript types
-packages/shared/     # Business logic (agent, auth, MCP, sessions)
-packages/ui/         # Shared React components
-```
-
-## Tech Stack
-
-- **Runtime**: Bun
-- **AI**: Claude Agent SDK
-- **Desktop**: Electron + React
-- **UI**: shadcn/ui + Tailwind CSS v4
-- **Build**: esbuild (main) + Vite (renderer)
+![Done](https://github.com/user-attachments/assets/fbaef008-af22-4d40-805e-58a1570124aa)

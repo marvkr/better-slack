@@ -16,7 +16,19 @@
 @property --background {
   syntax: "<color>";
   inherits: true;
-  initial-value: oklch(0.93 0.015 85);
+  initial-value: #F3F3ED;
+}
+
+@property --titlebar-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #F3F3ED;
+}
+
+@property --titlebar-background {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.962 0.00794 107);
 }
 
 @property --foreground {
@@ -64,13 +76,15 @@
    - /50 = 50% alpha (transparency) - for borders, hovers, overlays
    - -50 = 50% mix toward background (solid) - for Explore mode
 
-   Example: bg-foreground/10, text-accent, bg-foreground-60
+  --background: #F3F3ED;
+  --titlebar-background: #F3F3ED;
 ============================================================================= */
 
 /* Light Mode */
 :root {
   /* === 6 BASE COLORS === */
-  --background: oklch(0.93 0.015 85);
+  --background: #F3F3ED;
+  --titlebar-background: #F3F3ED;
   --foreground: oklch(0.185 0.01 270);
   --foreground-rgb: 38, 36, 42;             /* RGB for shadow borders */
   --accent: oklch(0.65 0.18 55);            /* orange - brand, Auto mode */
@@ -209,6 +223,7 @@
 .dark {
   /* === 6 BASE COLORS === */
   --background: oklch(0.2 0.005 270);
+  --titlebar-background: oklch(0.2 0.005 270);
   --foreground: oklch(0.92 0.005 270);
   --foreground-rgb: 227, 226, 229;           /* RGB for shadow borders */
   --accent: oklch(0.72 0.18 55);             /* brighter orange in dark */

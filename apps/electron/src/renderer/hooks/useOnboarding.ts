@@ -111,30 +111,24 @@ export function useOnboarding({
     checkGitBash()
   }, [])
 
-  // Save configuration
-  const handleSaveConfig = useCallback(async (credential?: string, options?: { baseUrl?: string; customModel?: string }) => {
-    if (!state.apiSetupMethod) {
-      console.log('[Onboarding] No API setup method selected, returning early')
-      return
-    }
-
+  // Save configuration (no credentials needed - backend handles API key)
+  const handleSaveConfig = useCallback(async () => {
     setState(s => ({ ...s, completionStatus: 'saving' }))
 
     try {
-      const authType = apiSetupMethodToAuthType(state.apiSetupMethod)
-      console.log('[Onboarding] Saving config with authType:', authType)
+      console.log('[Onboarding] Saving config for backend mode')
 
+      // Save minimal config - no API key needed since backend handles it
       const result = await window.electronAPI.saveOnboardingConfig({
-        authType,
-        credential,
-        anthropicBaseUrl: options?.baseUrl || null,
-        customModel: options?.customModel || null,
+        authType: 'api_key', // Backend mode
+        credential: undefined, // No credential needed
+        anthropicBaseUrl: null,
+        customModel: null,
       })
 
       if (result.success) {
         console.log('[Onboarding] Save successful')
         setState(s => ({ ...s, completionStatus: 'complete' }))
-        // Notify caller immediately so UI can reflect billing/model changes
         onConfigSaved?.()
       } else {
         console.error('[Onboarding] Save failed:', result.error)
@@ -151,7 +145,7 @@ export function useOnboarding({
         errorMessage: error instanceof Error ? error.message : 'Failed to save configuration',
       }))
     }
-  }, [state.apiSetupMethod, onConfigSaved])
+  }, [onConfigSaved])
 
   // Continue to next step
   const handleContinue = useCallback(async () => {
@@ -161,27 +155,23 @@ export function useOnboarding({
         if (state.gitBashStatus?.platform === 'win32' && !state.gitBashStatus?.found) {
           setState(s => ({ ...s, step: 'git-bash' }))
         } else {
-          setState(s => ({ ...s, step: 'api-setup' }))
+          // Skip API setup - go directly to completion
+          await handleSaveConfig()
+          setState(s => ({ ...s, step: 'complete' }))
         }
         break
 
       case 'git-bash':
-        setState(s => ({ ...s, step: 'api-setup' }))
-        break
-
-      case 'api-setup':
-        setState(s => ({ ...s, step: 'credentials' }))
-        break
-
-      case 'credentials':
-        // Handled by handleSubmitCredential
+        // Skip API setup - go directly to completion
+        await handleSaveConfig()
+        setState(s => ({ ...s, step: 'complete' }))
         break
 
       case 'complete':
         onComplete()
         break
     }
-  }, [state.step, state.gitBashStatus, state.apiSetupMethod, onComplete])
+  }, [state.step, state.gitBashStatus, onComplete])
 
   // Go back to previous step. If at the initial step, call onDismiss instead.
   const handleBack = useCallback(() => {
@@ -193,19 +183,8 @@ export function useOnboarding({
       case 'git-bash':
         setState(s => ({ ...s, step: 'welcome' }))
         break
-      case 'api-setup':
-        // If on Windows and Git Bash was needed, go back to git-bash step
-        if (state.gitBashStatus?.platform === 'win32' && state.gitBashStatus?.found === false) {
-          setState(s => ({ ...s, step: 'git-bash' }))
-        } else {
-          setState(s => ({ ...s, step: 'welcome' }))
-        }
-        break
-      case 'credentials':
-        setState(s => ({ ...s, step: 'api-setup', credentialStatus: 'idle', errorMessage: undefined }))
-        break
     }
-  }, [state.step, state.gitBashStatus, initialStep, onDismiss])
+  }, [state.step, initialStep, onDismiss])
 
   // Select API setup method
   const handleSelectApiSetupMethod = useCallback((method: ApiSetupMethod) => {

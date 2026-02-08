@@ -4,7 +4,7 @@
  * Right column: TaskDetailPage when a task is selected, or DispatchIntentStrip when none
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
 import { myTasksAtom, submittedTasksAtom, completedTasksAtom } from '@/atoms/dispatch'
@@ -73,23 +73,63 @@ export function DispatchLayout() {
     cancelTask(task.id)
   }
 
+  const handleEmptySpaceClick = () => {
+    // Navigate to main chat when clicking empty space
+    navigate(routes.view.dispatch('myTasks'))
+  }
+
+  // Keyboard navigation: Tab/Shift+Tab to cycle through tabs
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle Tab key
+      if (e.key !== 'Tab') return
+
+      // Don't interfere if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      e.preventDefault()
+
+      const currentIndex = TABS.findIndex(tab => tab.id === activeTab)
+      let nextIndex: number
+
+      if (e.shiftKey) {
+        // Shift+Tab: go to previous tab
+        nextIndex = currentIndex === 0 ? TABS.length - 1 : currentIndex - 1
+      } else {
+        // Tab: go to next tab
+        nextIndex = currentIndex === TABS.length - 1 ? 0 : currentIndex + 1
+      }
+
+      setActiveTab(TABS[nextIndex].id)
+      navigate(routes.view.dispatch('myTasks'))
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeTab])
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Left column: tabs + task list */}
       <div className="flex flex-col h-full w-[45%] min-w-0 shrink-0">
         {/* Tab bar - lowercase serif, bold active vs light inactive */}
-        <div className="shrink-0 flex items-baseline gap-6 px-6 pt-5 pb-3 h-16">
+        <div className="shrink-0 flex items-center gap-6 px-6 h-20 min-h-[80px]">
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id)
+                // Clear selected task when switching tabs
+                navigate(routes.view.dispatch('myTasks'))
+              }}
               style={{
                 fontFamily: '"Source Serif 4", Georgia, serif',
                 fontSize: activeTab === tab.id ? 28 : 20,
                 letterSpacing: '-0.02em',
                 color: activeTab === tab.id ? '#1E1E1E' : '#B3B3B3',
               }}
-              className="font-normal pb-1 transition-[font-size,color] duration-200 ease-out"
+              className="font-normal transition-[font-size,color] duration-200 ease-out leading-none"
             >
               {tab.label}
             </button>
@@ -98,12 +138,20 @@ export function DispatchLayout() {
 
         {/* Task list */}
         {tasks.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-foreground/30 text-sm px-6">
+          <div
+            onClick={handleEmptySpaceClick}
+            className="flex-1 flex items-center justify-center text-foreground/30 text-sm px-6 cursor-pointer hover:bg-foreground/[0.02] transition-colors"
+          >
             {EMPTY_MESSAGES[activeTab]}
           </div>
         ) : (
-          <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-3 px-5 py-4 pb-6">
+          <ScrollArea className="flex-1" onClick={(e) => {
+            // If clicking on the ScrollArea background (not a task card), go to main chat
+            if (e.target === e.currentTarget) {
+              handleEmptySpaceClick()
+            }
+          }}>
+            <div className="flex flex-col gap-3 px-5 py-4 pb-6 min-h-full">
               {tasks.map(task => (
                 <DispatchTaskCard
                   key={task.id}

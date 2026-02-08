@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { tasks, messages } from '../db/schema';
 import { coordinateTask } from '../services/ai-coordinator';
 import { incrementUserCapacity } from '../services/task-assignment';
+import { broadcastToUsers } from '../websocket';
 import type { ChatRequest } from '../types';
 
 const app = new Hono();
@@ -57,6 +58,12 @@ app.post('/', async (c) => {
         role: 'assistant'
       });
 
+      // Broadcast to requester
+      broadcastToUsers([userId], {
+        type: 'task:created',
+        data: { task: createdTask }
+      });
+
       return c.json({
         ...response,
         task: { ...response.task, id: createdTask.id }
@@ -89,6 +96,12 @@ app.post('/', async (c) => {
         userId: null,
         content: `Assigned to ${response.assignedTo.name}`,
         role: 'assistant'
+      });
+
+      // Broadcast to requester and assignee
+      broadcastToUsers([userId, response.assignedTo.userId], {
+        type: 'task:created',
+        data: { task: createdTask }
       });
 
       return c.json({

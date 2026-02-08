@@ -18,6 +18,7 @@ import { useAppShellContext } from '@/context/AppShellContext'
 import { getDispatchSystemPrompt } from '@/lib/dispatch-prompt'
 import { navigate, routes } from '@/lib/navigate'
 import { toast } from 'sonner'
+import * as api from '@/lib/api-client'
 import type { DispatchTask, TaskExecutionTier, TaskPriority } from '@craft-agent/core/types'
 
 interface CoordinatorResponse {
@@ -83,7 +84,7 @@ export function IntentInput() {
   }, [users])
 
   const handleSubmit = useCallback(async () => {
-    if (!input.trim() || isProcessing || !activeWorkspaceId) return
+    if (!input.trim() || isProcessing) return
 
     setIsProcessing(true)
     resetState()
@@ -91,139 +92,51 @@ export function IntentInput() {
     setInput('')
 
     try {
-      // Create a hidden session for the coordinator
-      const session = await onCreateSession(activeWorkspaceId, {
-        hidden: true,
-        systemPromptPreset: 'default',
-        permissionMode: 'allow-all',
-      })
+      // Send intent to backend AI coordinator
+      console.log('[IntentInput] Sending intent to backend:', intent)
+      const response = await api.sendChatMessage(intent, activeUser.id)
 
-      // Build the coordinator prompt with current team state
-      const coordinatorPrompt = getDispatchSystemPrompt(users)
+      console.log('[IntentInput] Coordinator response:', response)
 
-      // Send the intent wrapped in coordinator instructions
-      const message = `${coordinatorPrompt}\n\n---\n\nUser intent from ${activeUser.name} (${activeUser.role}):\n"${intent}"`
+      // Build reasoning message from response
+      const assignee = response.assignedTo ? { name: response.assignedTo.name, role: response.assignedTo.role } : null
+      const reasoning = buildReasoningMessage({
+        title: response.task.title,
+        description: response.task.description,
+        executionTier: response.executionTier,
+        priority: response.task.priority,
+        estimatedMinutes: response.estimatedMinutes,
+        requiredSkills: response.task.requiredSkills,
+        routingReason: response.reasoning,
+        deadline: response.task.deadline ? new Date(response.task.deadline).getTime() : undefined,
+      }, assignee)
 
-      await onSendMessage(session.id, message)
+      setReasoningMessage(reasoning)
 
-      // Poll for response
-      let attempts = 0
-      const maxAttempts = 60
-
-      const pollForResponse = async (): Promise<string | null> => {
-        while (attempts < maxAttempts) {
-          attempts++
-          await new Promise(resolve => setTimeout(resolve, 500))
-
-          const sessionData = await window.electronAPI.getSessionMessages(session.id)
-          if (!sessionData) continue
-
-          const assistantMsg = sessionData.messages.findLast(m => m.role === 'assistant')
-          if (!assistantMsg?.content) continue
-
-          if (!sessionData.isProcessing) {
-            return assistantMsg.content
-          }
-        }
-        return null
-      }
-
-      const response = await pollForResponse()
-
-      if (!response) {
-        toast.error('Coordinator timed out. Please try again.')
+      // For AI direct execution, show result inline
+      if (response.executionTier === 'ai_direct' && response.result) {
+        setInlineResult(response.result)
         setIsProcessing(false)
-        return
-      }
 
-      // Try to parse JSON from the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        try {
-          const parsed: CoordinatorResponse = JSON.parse(jsonMatch[0])
-
-          // Determine assignee
-          let assigneeId = parsed.assigneeId
-          if (!assigneeId && parsed.executionTier === 'human') {
-            const best = findBestAssignee(parsed.requiredSkills)
-            assigneeId = best?.id
-          }
-
-          // Build and show reasoning message
-          const assigneeUser = assigneeId ? users.find(u => u.id === assigneeId) : null
-          const reasoning = buildReasoningMessage(parsed, assigneeUser ? { name: assigneeUser.name, role: assigneeUser.role } : null)
-          setReasoningMessage(reasoning)
-
-          // Create the task
-          const task = createTask({
-            title: parsed.title,
-            description: parsed.description,
-            originalIntent: intent,
-            requesterId: activeUser.id,
-            assigneeId: parsed.executionTier === 'ai_direct' ? undefined : assigneeId,
-            executionTier: parsed.executionTier,
-            routingReason: parsed.routingReason,
-            priority: parsed.priority,
-            estimatedMinutes: parsed.estimatedMinutes,
-            requiredSkills: parsed.requiredSkills,
-            deadline: parsed.deadline,
-          })
-
-          // For AI direct execution, show result inline
-          if (parsed.executionTier === 'ai_direct') {
-            setIsExecuting(true)
-            setIsProcessing(false) // Allow seeing the reasoning while AI works
-
-            const aiSession = await onCreateSession(activeWorkspaceId, {
-              hidden: true,
-              permissionMode: 'allow-all',
-            })
-
-            await onSendMessage(aiSession.id, intent)
-
-            // Poll for AI result
-            let aiAttempts = 0
-            const pollForAiResult = async (): Promise<string | null> => {
-              while (aiAttempts < 120) {
-                aiAttempts++
-                await new Promise(resolve => setTimeout(resolve, 500))
-                const aiSessionData = await window.electronAPI.getSessionMessages(aiSession.id)
-                if (!aiSessionData) continue
-                if (!aiSessionData.isProcessing) {
-                  const result = aiSessionData.messages.findLast(m => m.role === 'assistant')
-                  return result?.content ?? null
-                }
-              }
-              return null
-            }
-
-            const aiResult = await pollForAiResult()
-            const resultText = aiResult ?? 'Task completed by AI'
-            completeTask(task.id, resultText)
-            setInlineResult(resultText)
-            setIsExecuting(false)
-          } else {
-            // For human/ai_agent tasks, navigate to the task after a brief pause
-            setIsProcessing(false)
-            setTimeout(() => {
-              navigate(routes.view.dispatch('myTasks', task.id))
-            }, 2000)
-            toast.success(`Task created: ${parsed.title}`)
-          }
-        } catch {
-          toast.error('Could not parse coordinator response')
-          setIsProcessing(false)
-        }
+        // The task was already created and completed by backend
+        toast.success('Task completed by AI')
       } else {
-        setReasoningMessage(response)
+        // For human tasks, task was created by backend and will appear via WebSocket
         setIsProcessing(false)
+
+        // Navigate to the task after a brief pause
+        setTimeout(() => {
+          navigate(routes.view.dispatch('myTasks', response.task.id))
+        }, 2000)
+
+        toast.success(`Task created: ${response.task.title}`)
       }
     } catch (error) {
-      console.error('Intent submission failed:', error)
+      console.error('[IntentInput] Failed to submit intent:', error)
       toast.error('Failed to process your request')
       setIsProcessing(false)
     }
-  }, [input, isProcessing, activeWorkspaceId, activeUser, users, onCreateSession, onSendMessage, createTask, completeTask, findBestAssignee, buildReasoningMessage, resetState])
+  }, [input, isProcessing, activeUser, buildReasoningMessage, resetState])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

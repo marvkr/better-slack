@@ -57,7 +57,7 @@ export function fuzzyFilter<T>(
   const order = uf.sort(info, haystack, query)
 
   return order.map((i) => ({
-    item: items[idxs[i]],
+    item: items[idxs[i as number]!]!,
     score: (info as any).score?.[i] ?? 0,
     ranges: (info as any).ranges?.[i],
   }))

@@ -9,7 +9,20 @@ import type { DispatchTask, TaskPriority } from '@craft-agent/core/types'
 import { dispatchUsersAtom } from '@/atoms/dispatch'
 import { DeadlineIndicator } from './DeadlineIndicator'
 import { AnonymousBadge } from './AnonymousBadge'
-import { Bot, User, Cpu } from 'lucide-react'
+import { Bot, User, Cpu, Check } from 'lucide-react'
+
+function formatCompletionDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = String(date.getFullYear()).slice(-2)
+  return `${day}/${month}/${year}`
+}
+
+function calculateLateDays(completedAt: number, deadline: number): number {
+  const diffMs = completedAt - deadline
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
 
 const PRIORITY_STYLES: Record<TaskPriority, { label: string; className: string }> = {
   urgent: { label: 'URGENT', className: 'bg-destructive/20 text-destructive' },
@@ -49,10 +62,10 @@ export function TaskCard({ task, isSelected, onClick }: TaskCardProps) {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3 py-2.5 border-l-2 transition-colors',
-        'hover:bg-foreground/[0.03]',
+        'w-full text-left px-3 py-2.5 border-l-2 transition-colors bg-white',
+        'hover:bg-gray-50',
         STATUS_STYLES[task.status] ?? 'border-l-transparent',
-        isSelected && 'bg-foreground/[0.05]',
+        isSelected && 'bg-gray-100',
       )}
     >
       {/* Title row */}
@@ -73,15 +86,35 @@ export function TaskCard({ task, isSelected, onClick }: TaskCardProps) {
           requesterRevealed={task.requesterRevealed}
           requesterName={requester?.name}
         />
-        {task.deadline && (
+        {task.status === 'completed' && task.completedAt ? (
+          (() => {
+            const completionDate = formatCompletionDate(task.completedAt)
+            const isLate = task.deadline && task.completedAt > task.deadline
+            const lateDays = isLate ? calculateLateDays(task.completedAt, task.deadline!) : 0
+
+            return (
+              <div
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium',
+                  isLate
+                    ? 'bg-[#D4A574] text-white'
+                    : 'bg-[#5B9A6C] text-white'
+                )}
+              >
+                <Check className="h-3 w-3" />
+                <span>
+                  {completionDate}
+                  {isLate && ` - ${lateDays} day${lateDays > 1 ? 's' : ''} late`}
+                </span>
+              </div>
+            )
+          })()
+        ) : task.deadline ? (
           <DeadlineIndicator
             deadline={task.deadline}
             startedAt={task.startedAt}
           />
-        )}
-        {task.status === 'completed' && (
-          <span className="text-[10px] text-green-500 font-medium">Done</span>
-        )}
+        ) : null}
       </div>
     </button>
   )

@@ -1,5 +1,4 @@
 import { app } from 'electron'
-import * as Sentry from '@sentry/electron/main'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { rm, readFile } from 'fs/promises'
@@ -2692,11 +2691,6 @@ export class SessionManager {
         sessionLog.error('Error message:', error instanceof Error ? error.message : String(error))
         sessionLog.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
 
-        // Report chat/SDK errors to Sentry for crash tracking
-        Sentry.captureException(error, {
-          tags: { errorSource: 'chat', sessionId },
-        })
-
         sendSpan.mark('chat.error')
         sendSpan.setMetadata('error', error instanceof Error ? error.message : String(error))
         sendSpan.end()
@@ -2864,10 +2858,6 @@ export class SessionManager {
         next.messageId
       ).catch(err => {
         sessionLog.error('Error processing queued message:', err)
-        // Report queued message failures to Sentry — these indicate SDK/chat pipeline errors
-        Sentry.captureException(err, {
-          tags: { errorSource: 'chat-queue', sessionId },
-        })
         this.sendEvent({
           type: 'error',
           sessionId,
@@ -3500,10 +3490,6 @@ To view this task's output:
             } catch (retryError) {
               managed.authRetryInProgress = false
               sessionLog.error(`[auth-retry] Failed to retry after auth refresh for session ${sessionId}:`, retryError)
-              // Report auth retry failures to Sentry — indicates credential/SDK issues
-              Sentry.captureException(retryError, {
-                tags: { errorSource: 'auth-retry', sessionId },
-              })
               // Show the original error to the user since retry failed
               const failedMessage: Message = {
                 id: generateMessageId(),

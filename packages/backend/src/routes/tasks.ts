@@ -3,6 +3,7 @@ import { db } from '../db/client';
 import { tasks, messages, assignmentHistory } from '../db/schema';
 import { sql, eq, and } from 'drizzle-orm';
 import { decrementUserCapacity, incrementUserCapacity } from '../services/task-assignment';
+import { broadcastToUsers } from '../websocket';
 
 const app = new Hono();
 
@@ -227,6 +228,53 @@ app.post('/:id/reassign', async (c) => {
   });
 
   return c.json({ success: true });
+});
+
+// POST /api/tasks/:id/messages - Send a message to task thread
+app.post('/:id/messages', async (c) => {
+  const taskId = c.param('id');
+  const userId = c.get('userId');
+  const body = await c.req.json();
+  const { content } = body;
+
+  if (!content || !content.trim()) {
+    return c.json({ error: 'Message content is required' }, 400);
+  }
+
+  const task = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.id, taskId))
+    .limit(1);
+
+  if (!task[0]) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+
+  // Check if user has access to this task
+  if (task[0].assigneeId !== userId && task[0].requesterId !== userId) {
+    return c.json({ error: 'Unauthorized' }, 403);
+  }
+
+  // Insert message
+  const [message] = await db.insert(messages).values({
+    taskId,
+    userId,
+    content: content.trim(),
+    role: 'user'
+  }).returning();
+
+  // Broadcast to assignee and requester
+  const userIds = [task[0].assigneeId, task[0].requesterId].filter(Boolean) as string[];
+  broadcastToUsers(userIds, {
+    type: 'message:new',
+    data: {
+      message,
+      taskId
+    }
+  });
+
+  return c.json(message);
 });
 
 export default app;

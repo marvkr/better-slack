@@ -1888,7 +1888,7 @@ function AppShellContent({
             1. titlebar-no-drag: prevents drag behavior on clickable elements
             2. relative z-panel: ensures elements render above this drag overlay
         */}
-        <div className="titlebar-drag-region fixed top-0 left-0 right-0 h-[50px] z-titlebar" />
+        <div className="titlebar-drag-region fixed top-0 left-0 right-0 h-[50px] z-titlebar bg-[var(--titlebar-background)]" />
 
       {/* App Menu - fixed position, always visible (hidden in focused mode and Better Slack mode)
           On macOS: offset 86px to avoid stoplight controls

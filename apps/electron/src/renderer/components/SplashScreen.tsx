@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { CraftAgentsSymbol } from './icons/CraftAgentsSymbol'
+import betterSlackIcon from '@/assets/better-slack-icon.png'
 
 interface SplashScreenProps {
   isExiting: boolean
@@ -7,10 +7,10 @@ interface SplashScreenProps {
 }
 
 /**
- * SplashScreen - Shows Craft symbol during app initialization
+ * SplashScreen - Shows Better Slack icon during app initialization
  *
- * Displays centered symbol on app background, fades out when app is fully ready.
- * On exit, the symbol scales up and fades out quickly while the background fades slower.
+ * Displays centered icon on app background, fades out when app is fully ready.
+ * On exit, the icon scales up and fades out quickly while the background fades slower.
  */
 export function SplashScreen({ isExiting, onExitComplete }: SplashScreenProps) {
   return (
@@ -26,9 +26,9 @@ export function SplashScreen({ isExiting, onExitComplete }: SplashScreenProps) {
       }}
     >
       <motion.div
-        initial={{ scale: 1.5, opacity: 1 }}
+        initial={{ scale: 1, opacity: 1 }}
         animate={{
-          scale: isExiting ? 3 : 1.5,
+          scale: isExiting ? 2 : 1,
           opacity: isExiting ? 0 : 1
         }}
         transition={{
@@ -36,7 +36,7 @@ export function SplashScreen({ isExiting, onExitComplete }: SplashScreenProps) {
           ease: [0.16, 1, 0.3, 1] // Exponential out curve
         }}
       >
-        <CraftAgentsSymbol className="h-8 text-accent" />
+        <img src={betterSlackIcon} alt="Better Slack" className="h-20 w-20" />
       </motion.div>
     </motion.div>
   )

@@ -23,7 +23,9 @@ interface DispatchTaskCardProps {
 export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject, onDateChange, isSentByMe = false }: DispatchTaskCardProps) {
   const activeUserId = useAtomValue(activeUserIdAtom)
   const isAssignedToMe = task.assigneeId === activeUserId
-  const hasNotification = task.hasUnreadMessages
+
+  // Red dot only shows for Todo tickets with unread messages (NOT for sent tickets)
+  const hasNotification = task.hasUnreadMessages && !isSentByMe
 
   // For sent tasks, only show X button (to cancel)
   // For assigned tasks, show accept/reject buttons (unless there's a notification)
@@ -90,12 +92,12 @@ export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject
       className={cn(
         'group relative rounded-3xl cursor-pointer transition-all flex items-center px-6 py-5 shadow-sm',
         isSelected
-          ? 'bg-foreground/[0.04] border border-foreground/[0.06]'
-          : 'bg-white border border-foreground/[0.06] hover:border-foreground/[0.10] hover:shadow-md',
+          ? 'bg-foreground/4 border border-foreground/6'
+          : 'bg-white border border-foreground/6 hover:border-foreground/10 hover:shadow-md',
       )}
     >
-      {/* Notification dot - shown when there are unread messages or when selected */}
-      {(hasNotification || isSelected) && (
+      {/* Notification dot - shown only when there are unread messages */}
+      {hasNotification && (
         <div className="absolute top-4 right-4 h-3 w-3 rounded-full bg-destructive" />
       )}
 
@@ -135,8 +137,8 @@ export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject
             }}
             disabled={!isSentByMe || !onDateChange}
             className={cn(
-              "inline-flex items-center gap-1.5 text-[13px] text-foreground/90 bg-foreground/[0.08] pl-2.5 pr-3 py-1.5 rounded-full font-medium",
-              isSentByMe && onDateChange && "hover:bg-foreground/[0.12] cursor-pointer transition-colors",
+              "inline-flex items-center gap-1.5 text-[13px] text-foreground/90 bg-foreground/8 pl-2.5 pr-3 py-1.5 rounded-full font-medium",
+              isSentByMe && onDateChange && "hover:bg-foreground/12 cursor-pointer transition-colors",
               !isSentByMe && "cursor-default"
             )}
           >
@@ -155,7 +157,7 @@ export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject
         <div className="shrink-0 ml-4">
           <button
             onClick={(e) => { e.stopPropagation(); onReject?.() }}
-            className="h-14 w-14 rounded-full bg-foreground/[0.06] flex items-center justify-center text-foreground/60 hover:bg-foreground/[0.10] transition-all"
+            className="h-14 w-14 rounded-full bg-foreground/6 flex items-center justify-center text-foreground/60 hover:bg-foreground/10 transition-all"
             title="Cancel task"
           >
             <X className="h-6 w-6" strokeWidth={2.5} />
@@ -165,7 +167,7 @@ export function DispatchTaskCard({ task, isSelected, onClick, onAccept, onReject
         <div className="flex items-center gap-3 shrink-0 ml-4">
           <button
             onClick={(e) => { e.stopPropagation(); onReject?.() }}
-            className="h-14 w-14 rounded-full bg-foreground/[0.06] flex items-center justify-center text-foreground/60 hover:bg-foreground/[0.10] transition-all"
+            className="h-14 w-14 rounded-full bg-foreground/6 flex items-center justify-center text-foreground/60 hover:bg-foreground/10 transition-all"
             title="Reject"
           >
             <X className="h-6 w-6" strokeWidth={2.5} />

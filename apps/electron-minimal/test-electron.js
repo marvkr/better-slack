@@ -1,7 +1,0 @@
-console.log('Starting test...')
-const electron = require('electron')
-console.log('electron module:', electron)
-console.log('typeof electron:', typeof electron)
-console.log('electron keys:', Object.keys(electron || {}))
-console.log('electron.app:', electron?.app)
-console.log('electron.BrowserWindow:', electron?.BrowserWindow)

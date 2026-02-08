@@ -1,5 +1,4 @@
-// Capture errors in the isolated preload context and forward to Sentry
-import '@sentry/electron/preload'
+// Preload script for Electron context bridge
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS, type SessionEvent, type ElectronAPI, type FileAttachment, type AuthType } from '../shared/types'
 

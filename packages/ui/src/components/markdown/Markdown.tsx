@@ -6,7 +6,6 @@ import { cn } from '../../lib/utils'
 import { CodeBlock, InlineCode } from './CodeBlock'
 import { MarkdownDiffBlock } from './MarkdownDiffBlock'
 import { MarkdownJsonBlock } from './MarkdownJsonBlock'
-import { MarkdownMermaidBlock } from './MarkdownMermaidBlock'
 import { preprocessLinks } from './linkify'
 import remarkCollapsibleSections from './remarkCollapsibleSections'
 import { CollapsibleSection } from './CollapsibleSection'
@@ -185,18 +184,6 @@ function createComponents(
           if (match?.[1] === 'json') {
             return <MarkdownJsonBlock code={code} className="my-1" />
           }
-          // Mermaid code blocks → zinc-styled SVG diagram.
-          // Hide the inline expand button when the mermaid block is the first
-          // content in the message — TurnCard's own fullscreen button occupies
-          // the same top-right spot. Detection uses firstMermaidCodeRef (content
-          // match) rather than AST line positions which are unreliable after
-          // preprocessLinks transforms the markdown.
-          if (match?.[1] === 'mermaid') {
-            const isFirstBlock = hideFirstMermaidExpand &&
-                                firstMermaidCodeRef?.current != null &&
-                                code === firstMermaidCodeRef.current
-            return <MarkdownMermaidBlock code={code} className="my-1" showExpandButton={!isFirstBlock} />
-          }
           return <CodeBlock code={code} language={match?.[1]} mode="full" className="my-1" />
         }
 
@@ -264,14 +251,6 @@ function createComponents(
         // JSON code blocks → interactive tree viewer
         if (match?.[1] === 'json') {
           return <MarkdownJsonBlock code={code} className="my-1" />
-        }
-        // Mermaid code blocks → zinc-styled SVG diagram.
-        // (Same first-block detection as minimal mode — see comment above.)
-        if (match?.[1] === 'mermaid') {
-          const isFirstBlock = hideFirstMermaidExpand &&
-                              firstMermaidCodeRef?.current != null &&
-                              code === firstMermaidCodeRef.current
-          return <MarkdownMermaidBlock code={code} className="my-1" showExpandButton={!isFirstBlock} />
         }
         return <CodeBlock code={code} language={match?.[1]} mode="full" className="my-1" />
       }

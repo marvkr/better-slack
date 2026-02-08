@@ -803,7 +803,7 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
     || (activity.type === 'thinking' ? 'Thinking' : 'Processing')
 
   // Detect MCP/API tools (toolName starts with "mcp__")
-  const isMcpOrApiTool = activity.toolName?.startsWith('mcp__') ?? false
+  const isMcpOrApiTool: boolean = activity.toolName?.startsWith('mcp__') ?? false
 
   // For MCP/API tools, extract source name and tool slug
   // e.g., "ClickUp: clickup_search" -> sourceName="ClickUp", toolSlug="clickup_search"
@@ -818,7 +818,7 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
   }
 
   // For non-MCP tools or informative mode, use the appropriate display name
-  const displayedName = isMcpOrApiTool ? sourceName : fullDisplayName
+  const displayedName: string = isMcpOrApiTool ? sourceName : fullDisplayName
 
   // Intent for MCP tools, description for Bash commands
   const intentOrDescription = activity.intent || (activity.toolInput?.description as string | undefined)
@@ -835,6 +835,12 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
         ? `Shell ID: ${activity.shellId}${activity.elapsedSeconds ? `, ${formatDuration(activity.elapsedSeconds * 1000)} elapsed` : ''}`
         : null
     : null
+
+  // Class name for native tool name span
+  const nativeToolNameClassName = cn(
+    "shrink-0",
+    onOpenDetails && isComplete && "group-hover/row:underline"
+  )
 
   return (
     <div className="flex items-stretch">
@@ -892,7 +898,8 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
           </>
         )}
         {/* Native tools: Tool name (shrink-0) */}
-        {!isMcpOrApiTool && (<span className={cn("shrink-0", onOpenDetails && isComplete && "group-hover/row:underline")}>{displayedName}</span> as React.ReactNode)}
+        {/* @ts-ignore - TypeScript incorrectly infers unknown type for this conditional JSX */}
+        {!isMcpOrApiTool && <span className="shrink-0">{displayedName}</span>}
         {/* Diff stats and filename badges - after tool name */}
         {!isMcpOrApiTool && !isBackgrounded && diffStats && (
           <span className="flex items-center gap-1.5 text-[10px] shrink-0">

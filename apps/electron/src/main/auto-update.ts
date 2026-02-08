@@ -13,15 +13,19 @@
  * All platforms: quitAndInstall() handles restart natively — no external scripts.
  */
 
-import { autoUpdater } from 'electron-updater'
+import { app } from 'electron'
 import { mainLog } from './logger'
-import { getAppVersion } from '@craft-agent/shared/version'
-import {
-  getDismissedUpdateVersion,
-  clearDismissedUpdateVersion,
-} from '@craft-agent/shared/config'
 import type { UpdateInfo } from '../shared/types'
 import type { WindowManager } from './window-manager'
+import type { AppUpdater } from 'electron-updater'
+
+// Simple version helper (replaces @craft-agent/shared/version)
+const getAppVersion = () => app.getVersion()
+
+// Stub dismissed update tracking (simplified, no persistence)
+let dismissedVersion: string | null = null
+const getDismissedUpdateVersion = () => dismissedVersion
+const clearDismissedUpdateVersion = () => { dismissedVersion = null }
 
 // Module state — keeps track of update info for IPC queries
 let updateInfo: UpdateInfo = {
@@ -36,6 +40,34 @@ let windowManager: WindowManager | null = null
 
 // Flag to indicate update is in progress — used to prevent force exit during quitAndInstall
 let __isUpdating = false
+
+// Lazy-loaded autoUpdater to avoid app.getVersion() call before app is ready
+let autoUpdater: AppUpdater | null = null
+
+/**
+ * Initialize the autoUpdater after the app is ready
+ */
+async function getAutoUpdater(): Promise<AppUpdater> {
+  if (autoUpdater) return autoUpdater
+
+  const { autoUpdater: updater } = await import('electron-updater')
+  autoUpdater = updater
+
+  // Configure electron-updater
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.logger = {
+    info: (msg: unknown) => mainLog.info('[electron-updater]', msg),
+    warn: (msg: unknown) => mainLog.warn('[electron-updater]', msg),
+    error: (msg: unknown) => mainLog.error('[electron-updater]', msg),
+    debug: (msg: unknown) => mainLog.info('[electron-updater:debug]', msg),
+  }
+
+  // Set up event handlers
+  setupAutoUpdaterEvents()
+
+  return autoUpdater
+}
 
 /**
  * Check if an update installation is in progress.
@@ -89,86 +121,75 @@ function broadcastDownloadProgress(progress: number): void {
   }
 }
 
-// ─── Configure electron-updater ───────────────────────────────────────────────
+/**
+ * Set up event handlers for autoUpdater
+ */
+function setupAutoUpdaterEvents(): void {
+  if (!autoUpdater) return
 
-// Auto-download updates in the background after detection
-autoUpdater.autoDownload = true
+  autoUpdater.on('checking-for-update', () => {
+    mainLog.info('[auto-update] Checking for updates...')
+  })
 
-// Install on app quit (if update is downloaded but user hasn't clicked "Restart")
-autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.on('update-available', (info) => {
+    mainLog.info(`[auto-update] Update available: ${updateInfo.currentVersion} → ${info.version}`)
 
-// Use the logger for electron-updater internal logging
-autoUpdater.logger = {
-  info: (msg: unknown) => mainLog.info('[electron-updater]', msg),
-  warn: (msg: unknown) => mainLog.warn('[electron-updater]', msg),
-  error: (msg: unknown) => mainLog.error('[electron-updater]', msg),
-  debug: (msg: unknown) => mainLog.info('[electron-updater:debug]', msg),
+    updateInfo = {
+      ...updateInfo,
+      available: true,
+      latestVersion: info.version,
+      downloadState: 'downloading',
+      downloadProgress: 0,
+    }
+    broadcastUpdateInfo()
+  })
+
+  autoUpdater.on('update-not-available', (info) => {
+    mainLog.info(`[auto-update] Already up to date (${info.version})`)
+
+    updateInfo = {
+      ...updateInfo,
+      available: false,
+      latestVersion: info.version,
+      downloadState: 'idle',
+    }
+    broadcastUpdateInfo()
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    const percent = Math.round(progress.percent)
+    updateInfo = { ...updateInfo, downloadProgress: percent }
+    broadcastDownloadProgress(percent)
+  })
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    mainLog.info(`[auto-update] Update downloaded: v${info.version}`)
+
+    updateInfo = {
+      ...updateInfo,
+      available: true,
+      latestVersion: info.version,
+      downloadState: 'ready',
+      downloadProgress: 100,
+    }
+    broadcastUpdateInfo()
+
+    // Rebuild menu to show "Install Update..." option
+    const { rebuildMenu } = await import('./menu')
+    rebuildMenu()
+  })
+
+  autoUpdater.on('error', (error) => {
+    mainLog.error('[auto-update] Error:', error.message)
+
+    updateInfo = {
+      ...updateInfo,
+      downloadState: 'error',
+      error: error.message,
+    }
+    broadcastUpdateInfo()
+  })
 }
-
-// ─── Event handlers ───────────────────────────────────────────────────────────
-
-autoUpdater.on('checking-for-update', () => {
-  mainLog.info('[auto-update] Checking for updates...')
-})
-
-autoUpdater.on('update-available', (info) => {
-  mainLog.info(`[auto-update] Update available: ${updateInfo.currentVersion} → ${info.version}`)
-
-  updateInfo = {
-    ...updateInfo,
-    available: true,
-    latestVersion: info.version,
-    downloadState: 'downloading',
-    downloadProgress: 0,
-  }
-  broadcastUpdateInfo()
-})
-
-autoUpdater.on('update-not-available', (info) => {
-  mainLog.info(`[auto-update] Already up to date (${info.version})`)
-
-  updateInfo = {
-    ...updateInfo,
-    available: false,
-    latestVersion: info.version,
-    downloadState: 'idle',
-  }
-  broadcastUpdateInfo()
-})
-
-autoUpdater.on('download-progress', (progress) => {
-  const percent = Math.round(progress.percent)
-  updateInfo = { ...updateInfo, downloadProgress: percent }
-  broadcastDownloadProgress(percent)
-})
-
-autoUpdater.on('update-downloaded', async (info) => {
-  mainLog.info(`[auto-update] Update downloaded: v${info.version}`)
-
-  updateInfo = {
-    ...updateInfo,
-    available: true,
-    latestVersion: info.version,
-    downloadState: 'ready',
-    downloadProgress: 100,
-  }
-  broadcastUpdateInfo()
-
-  // Rebuild menu to show "Install Update..." option
-  const { rebuildMenu } = await import('./menu')
-  rebuildMenu()
-})
-
-autoUpdater.on('error', (error) => {
-  mainLog.error('[auto-update] Error:', error.message)
-
-  updateInfo = {
-    ...updateInfo,
-    downloadState: 'error',
-    error: error.message,
-  }
-  broadcastUpdateInfo()
-})
 
 // ─── Exported API ─────────────────────────────────────────────────────────────
 
@@ -189,13 +210,15 @@ interface CheckOptions {
 export async function checkForUpdates(options: CheckOptions = {}): Promise<UpdateInfo> {
   const { autoDownload = true } = options
 
+  const updater = await getAutoUpdater()
+
   // Temporarily override autoDownload for this check if needed
   // (e.g., manual check from settings shouldn't auto-download on metered connections)
-  const previousAutoDownload = autoUpdater.autoDownload
-  autoUpdater.autoDownload = autoDownload
+  const previousAutoDownload = updater.autoDownload
+  updater.autoDownload = autoDownload
 
   try {
-    await autoUpdater.checkForUpdates()
+    await updater.checkForUpdates()
   } catch (error) {
     mainLog.error('[auto-update] Check failed:', error)
     updateInfo = {
@@ -205,7 +228,7 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
     }
   } finally {
     // Restore previous autoDownload setting
-    autoUpdater.autoDownload = previousAutoDownload
+    updater.autoDownload = previousAutoDownload
   }
 
   return getUpdateInfo()
@@ -235,10 +258,12 @@ export async function installUpdate(): Promise<void> {
   // Set flag to prevent force exit from breaking electron-updater's shutdown sequence
   __isUpdating = true
 
+  const updater = await getAutoUpdater()
+
   try {
     // isSilent=false shows the installer UI on Windows if needed (fallback)
     // isForceRunAfter=true ensures the app relaunches after install
-    autoUpdater.quitAndInstall(false, true)
+    updater.quitAndInstall(false, true)
   } catch (error) {
     __isUpdating = false
     mainLog.error('[auto-update] quitAndInstall failed:', error)

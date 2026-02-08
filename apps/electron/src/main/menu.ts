@@ -1,5 +1,5 @@
+// Simplified application menu for Dispatch
 import { Menu, app, shell, BrowserWindow } from 'electron'
-import { IPC_CHANNELS } from '../shared/types'
 import type { WindowManager } from './window-manager'
 import { mainLog } from './logger'
 
@@ -7,9 +7,7 @@ import { mainLog } from './logger'
 let cachedWindowManager: WindowManager | null = null
 
 /**
- * Creates and sets the application menu for macOS.
- * Includes only relevant items for the Dispatch app.
- *
+ * Creates and sets the application menu.
  * Call rebuildMenu() when update state changes to refresh the menu.
  */
 export function createApplicationMenu(windowManager: WindowManager): void {
@@ -19,19 +17,13 @@ export function createApplicationMenu(windowManager: WindowManager): void {
 
 /**
  * Rebuilds the application menu with current update state.
- * Call this when update availability changes.
- *
- * On Windows/Linux: Menu is hidden - all functionality is in the Craft logo menu.
- * On macOS: Native menu is required by Apple guidelines, so we keep it synced.
  */
 export async function rebuildMenu(): Promise<void> {
   if (!cachedWindowManager) return
 
-  const windowManager = cachedWindowManager
   const isMac = process.platform === 'darwin'
 
-  // On Windows/Linux, hide the native menu entirely
-  // Users access menu via the Craft logo dropdown in the app
+  // On Windows/Linux, hide the native menu
   if (!isMac) {
     Menu.setApplicationMenu(null)
     return
@@ -65,12 +57,6 @@ export async function rebuildMenu(): Promise<void> {
         { role: 'about' as const, label: 'About Dispatch' },
         updateMenuItem,
         { type: 'separator' as const },
-        {
-          label: 'Settings...',
-          accelerator: 'CmdOrCtrl+,',
-          click: () => sendToRenderer(IPC_CHANNELS.MENU_OPEN_SETTINGS)
-        },
-        { type: 'separator' as const },
         { role: 'hide' as const, label: 'Hide Dispatch' },
         { role: 'hideOthers' as const },
         { role: 'unhide' as const },
@@ -83,24 +69,6 @@ export async function rebuildMenu(): Promise<void> {
     {
       label: 'File',
       submenu: [
-        {
-          label: 'New Chat',
-          accelerator: 'CmdOrCtrl+N',
-          click: () => sendToRenderer(IPC_CHANNELS.MENU_NEW_CHAT)
-        },
-        {
-          label: 'New Window',
-          accelerator: 'CmdOrCtrl+Shift+N',
-          click: () => {
-            const focused = BrowserWindow.getFocusedWindow()
-            if (focused) {
-              const workspaceId = windowManager.getWorkspaceForWindow(focused.webContents.id)
-              if (workspaceId) {
-                windowManager.createWindow({ workspaceId })
-              }
-            }
-          }
-        },
         { type: 'separator' as const },
         isMac ? { role: 'close' as const } : { role: 'quit' as const }
       ]
@@ -173,19 +141,6 @@ export async function rebuildMenu(): Promise<void> {
               mainLog.error('[debug-menu] Install failed:', err)
             }
           }
-        },
-        { type: 'separator' as const },
-        {
-          label: 'Reset to Defaults...',
-          click: async () => {
-            const { dialog } = await import('electron')
-            await dialog.showMessageBox({
-              type: 'info',
-              message: 'Reset to Defaults',
-              detail: 'To reset Craft Agent to defaults, quit the app and run:\n\nbun run fresh-start\n\nThis will delete all configuration, credentials, workspaces, and sessions.',
-              buttons: ['OK']
-            })
-          }
         }
       ]
     }] : []),
@@ -196,12 +151,7 @@ export async function rebuildMenu(): Promise<void> {
       submenu: [
         {
           label: 'Help & Documentation',
-          click: () => shell.openExternal('https://agents.craft.do/docs')
-        },
-        {
-          label: 'Keyboard Shortcuts',
-          accelerator: 'CmdOrCtrl+/',
-          click: () => sendToRenderer(IPC_CHANNELS.MENU_KEYBOARD_SHORTCUTS)
+          click: () => shell.openExternal('https://github.com/marvkr/better-slack')
         }
       ]
     }

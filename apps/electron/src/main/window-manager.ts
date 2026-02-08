@@ -221,27 +221,7 @@ export class WindowManager {
       window.loadFile(join(__dirname, 'renderer/index.html'), { query: { workspaceId } })
     })
 
-    // If an initial deep link was provided, navigate to it after the window is ready
-    if (initialDeepLink) {
-      window.once('ready-to-show', () => {
-        // Import parseDeepLink dynamically to avoid circular dependency
-        import('./deep-link').then(({ parseDeepLink }) => {
-          const target = parseDeepLink(initialDeepLink)
-          if (target && (target.view || target.action)) {
-            // Wait a bit for React to mount and register IPC listeners
-            setTimeout(() => {
-              if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
-                window.webContents.send(IPC_CHANNELS.DEEP_LINK_NAVIGATE, {
-                  view: target.view,
-                  action: target.action,
-                  actionParams: target.actionParams,
-                })
-              }
-            }, 100)
-          }
-        })
-      })
-    }
+    // Deep link handling removed (Dispatch doesn't use deep links)
 
     // Store the window mapping
     const webContentsId = window.webContents.id

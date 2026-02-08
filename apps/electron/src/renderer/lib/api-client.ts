@@ -28,6 +28,18 @@ export interface BackendTask {
 }
 
 /**
+ * Task message format
+ */
+export interface TaskMessage {
+  id: string
+  userId: string | null
+  content: string
+  role: 'user' | 'assistant'
+  taskId: string
+  createdAt: string
+}
+
+/**
  * Helper to create headers with X-User-Id
  */
 function createHeaders(userId: string): HeadersInit {
@@ -132,6 +144,51 @@ export async function reassignTask(
     }
   } catch (error) {
     console.error('[API Client] Error reassigning task:', error)
+    throw error
+  }
+}
+
+/**
+ * Get task details with messages
+ */
+export async function getTaskDetails(
+  taskId: string,
+  userId: string
+): Promise<BackendTask & { messages: TaskMessage[] }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+      headers: createHeaders(userId),
+    })
+    if (!response.ok) {
+      throw new Error(`Failed to fetch task details: ${response.statusText}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('[API Client] Error fetching task details:', error)
+    throw error
+  }
+}
+
+/**
+ * Send a message to a task thread
+ */
+export async function sendTaskMessage(
+  taskId: string,
+  content: string,
+  userId: string
+): Promise<TaskMessage> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/messages`, {
+      method: 'POST',
+      headers: createHeaders(userId),
+      body: JSON.stringify({ content }),
+    })
+    if (!response.ok) {
+      throw new Error(`Failed to send task message: ${response.statusText}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('[API Client] Error sending task message:', error)
     throw error
   }
 }

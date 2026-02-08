@@ -18,6 +18,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
 // Configure pdf.js worker using Vite's ?url import for cross-platform dev/prod compatibility
+// @ts-ignore - Worker path is resolved at build time
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
 

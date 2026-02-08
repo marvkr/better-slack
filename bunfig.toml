@@ -1,1 +1,1 @@
-preload = ["./packages/shared/src/network-interceptor.ts"]
+# Bun configuration for Dispatch

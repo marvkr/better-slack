@@ -24,8 +24,6 @@ files:
   - dist/assets/config-defaults.json
   # Include SDK for subprocess execution
   - node_modules/@anthropic-ai/claude-agent-sdk/**/*
-  # Include network interceptor for API error capture and MCP schema injection
-  - packages/shared/src/network-interceptor.ts
   # Include bundled Bun runtime (platform-specific, set by build script)
   - vendor/bun/**/*
   # Exclude everything else from node_modules

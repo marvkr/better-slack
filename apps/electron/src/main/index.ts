@@ -132,9 +132,19 @@ app.on('before-quit', async (event) => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  mainLog.error('Uncaught exception:', error)
+  if (error instanceof Error) {
+    mainLog.error('Uncaught exception:', error.message)
+    mainLog.error('Stack:', error.stack)
+  } else {
+    mainLog.error('Uncaught exception (non-Error):', typeof error, String(error))
+  }
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-  mainLog.error('Unhandled rejection at:', promise, 'reason:', reason)
+  if (reason instanceof Error) {
+    mainLog.error('Unhandled rejection:', reason.message)
+    mainLog.error('Stack:', reason.stack)
+  } else {
+    mainLog.error('Unhandled rejection (non-Error):', typeof reason, String(reason))
+  }
 })

@@ -8,7 +8,8 @@
 import * as React from 'react'
 import { CheckCircle2, XCircle, X } from 'lucide-react'
 import { cn } from '@craft-agent/ui'
-import { ActivityStatusIcon, SIZE_CONFIG, type ActivityItem, type ActivityStatus } from './TurnCard'
+import { ActivityStatusIcon, type ActivityItem, type ActivityStatus } from './TurnCard'
+import { SIZE_CONFIG } from './size-config'
 import { LoadingIndicator } from '../ui/LoadingIndicator'
 import { Markdown } from '../markdown'
 

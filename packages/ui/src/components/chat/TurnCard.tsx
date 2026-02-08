@@ -111,27 +111,7 @@ function computeEditWriteDiffStats(
 // Size Configuration
 // ============================================================================
 
-/**
- * Global size configuration for TurnCard components.
- * Adjust these values to scale the entire component uniformly.
- */
-/** Shared size configuration for activity UI - exported for reuse in inline execution */
-export const SIZE_CONFIG = {
-  /** Base font size class for all text */
-  fontSize: 'text-[13px]',
-  /** Icon size class (width and height) */
-  iconSize: 'w-3 h-3',
-  /** Spinner text size class */
-  spinnerSize: 'text-[10px]',
-  /** Small spinner for header */
-  spinnerSizeSmall: 'text-[8px]',
-  /** Activity row height in pixels (approx for calculation) */
-  activityRowHeight: 24,
-  /** Max visible activities before scrolling (show ~14 items) */
-  maxVisibleActivities: 14,
-  /** Number of items before which we apply staggered animation */
-  staggeredAnimationLimit: 10,
-} as const
+import { SIZE_CONFIG } from './size-config'
 
 // ============================================================================
 // Types
@@ -836,11 +816,8 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
         : null
     : null
 
-  // Class name for native tool name span
-  const nativeToolNameClassName = cn(
-    "shrink-0",
-    onOpenDetails && isComplete && "group-hover/row:underline"
-  )
+  // Native tool name element
+  const nativeToolNameElement: React.ReactNode = !isMcpOrApiTool ? <span className="shrink-0">{displayedName}</span> : null
 
   return (
     <div className="flex items-stretch">
@@ -898,9 +875,7 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath, 
           </>
         )}
         {/* Native tools: Tool name (shrink-0) */}
-        <>
-          {!isMcpOrApiTool ? <span className="shrink-0">{displayedName}</span> : null}
-        </>
+        {nativeToolNameElement as any}
         {/* Diff stats and filename badges - after tool name */}
         {!isMcpOrApiTool && !isBackgrounded && diffStats && (
           <span className="flex items-center gap-1.5 text-[10px] shrink-0">

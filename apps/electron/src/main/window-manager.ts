@@ -172,14 +172,11 @@ export class WindowManager {
     if (restoreUrl) {
       // Restore from saved URL - need to adapt for dev vs prod
       if (VITE_DEV_SERVER_URL) {
-        // In dev mode, replace the base URL but keep the path and query
+        // In dev mode, extract query params only and use dev server base URL
         try {
           const savedUrl = new URL(restoreUrl)
-          const devUrl = new URL(VITE_DEV_SERVER_URL)
-          // Preserve pathname and search from saved URL, use dev server host
-          devUrl.pathname = savedUrl.pathname
-          devUrl.search = savedUrl.search
-          window.loadURL(devUrl.toString())
+          // Only preserve query params, not pathname (dev server always serves from /)
+          window.loadURL(`${VITE_DEV_SERVER_URL}${savedUrl.search}`)
         } catch {
           // Fallback if URL parsing fails
           windowLog.warn('Failed to parse restoreUrl, using default:', restoreUrl)

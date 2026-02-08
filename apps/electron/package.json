@@ -1,7 +1,6 @@
 {
   "name": "@craft-agent/electron",
   "version": "0.3.1",
-  "productName": "Dispatch",
   "description": "Electron desktop app for Dispatch",
   "main": "dist/main.cjs",
   "private": true,

@@ -1,5 +1,5 @@
 /**
- * TaskDetailPage - Chat-bubble style task detail view for Better Slack UI.
+ * TaskDetailPage - Chat-bubble style task detail view for Dispatch UI.
  * Simple header with task title, chat bubbles for content, input at bottom.
  */
 

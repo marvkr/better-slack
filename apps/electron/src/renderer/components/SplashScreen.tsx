@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import betterSlackIcon from '@/assets/better-slack-icon.png'
+import dispatchIcon from '@/assets/dispatch-icon.png'
 
 interface SplashScreenProps {
   isExiting: boolean
@@ -7,7 +7,7 @@ interface SplashScreenProps {
 }
 
 /**
- * SplashScreen - Shows Better Slack icon during app initialization
+ * SplashScreen - Shows Dispatch icon during app initialization
  *
  * Displays centered icon on app background, fades out when app is fully ready.
  * On exit, the icon scales up and fades out quickly while the background fades slower.
@@ -36,7 +36,7 @@ export function SplashScreen({ isExiting, onExitComplete }: SplashScreenProps) {
           ease: [0.16, 1, 0.3, 1] // Exponential out curve
         }}
       >
-        <img src={betterSlackIcon} alt="Better Slack" className="h-20 w-20" />
+        <img src={dispatchIcon} alt="Dispatch" className="h-20 w-20" />
       </motion.div>
     </motion.div>
   )

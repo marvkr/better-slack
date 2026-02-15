@@ -1,5 +1,5 @@
 /**
- * DispatchIntentStrip - Chat-like right panel for Better Slack UI.
+ * DispatchIntentStrip - Chat-like right panel for Dispatch UI.
  * Messages as bubbles: left-aligned (received) / right-aligned (sent).
  * Input: white bg, rounded-2xl, send button = dark circle with ArrowUp.
  */

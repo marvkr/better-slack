@@ -151,7 +151,7 @@ export async function rebuildMenu(): Promise<void> {
       submenu: [
         {
           label: 'Help & Documentation',
-          click: () => shell.openExternal('https://github.com/marvkr/better-slack')
+          click: () => shell.openExternal('https://github.com/marvkr/dispatch')
         }
       ]
     }

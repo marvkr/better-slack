@@ -1,5 +1,5 @@
 /**
- * DispatchTaskCard - Clean task card for Better Slack UI.
+ * DispatchTaskCard - Clean task card for Dispatch UI.
  * Layout: left side (title + description + date pill), right side (large X and check circles).
  * Subtle border, white bg. Selected state: beige bg + red dot + chevron.
  */

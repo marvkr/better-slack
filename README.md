@@ -6,10 +6,6 @@ This project replaces workplace chat with an AI-native task router. Instead of a
 
 When a task can be completed by AI—summarization, research, writing, analysis—it is executed autonomously without involving a human at all, saving time for everyone. For human-assigned work, the AI manages progress updates, reminders, and reassignment if deadlines are at risk, keeping requesters informed without interruptions or "just checking in" messages. The result is a calmer, fairer way to work: humans focus on high-leverage tasks, while AI owns coordination and eliminates unnecessary work entirely.
 
-## Demo
-
-[![Watch the demo](https://img.youtube.com/vi/xVkiMywTXrY/maxresdefault.jpg)](https://www.youtube.com/watch?v=xVkiMywTXrY)
-
 ## Screenshots
 
 ![Todo + create task](https://github.com/user-attachments/assets/ace51cfa-bc4e-4966-993b-4b7704dcb98e)

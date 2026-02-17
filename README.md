@@ -1,6 +1,6 @@
 # Dispatch
 
-> Submitted to [Better Hack](https://www.betterhack.dev/) — hosted by Better Auth at Y Combinator, San Francisco
+> Submitted to [Better Hack](https://www.better-hack.io/) — hosted by Better Auth at Y Combinator, San Francisco
 
 This project replaces workplace chat with an AI-native task router. Instead of asking coworkers through messages, people express intent in plain language—what needs to be done and by when. A central AI product owner/manager takes ownership of coordination: it understands team capacity, skills, priorities, and deadlines, then decides whether to route the task to the best-suited teammate or handle it itself. During execution, requests are anonymized to remove social bias, politics, and passive-aggressive dynamics, so work is evaluated purely on merit and urgency.
 

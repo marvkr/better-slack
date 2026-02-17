@@ -22,6 +22,6 @@ When a task can be completed by AI—summarization, research, writing, analysis�
 
 ## Team
 
-- **Jordan Hodali** — Lead
-- **Romain** — Team Member
-- **Marvin** — Team Member
+- **Jordan Hodali**
+- **Romain Daguet** 
+- **Marvin Kaunda**
